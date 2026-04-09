@@ -9,9 +9,9 @@ import QuoteForm from "@/src/components/QuoteForm";
 import SaaSPortfolio from "@/src/components/SaaSPortfolio";
 import { Brain, Cpu, Globe, Smartphone, ShieldCheck, Zap, ArrowRight, ArrowLeft, ShoppingCart, Layers, Terminal, Database, Cloud, Code2, Search, MessageSquare, Star, Server, Rocket, Bot, Eye, Network, Activity, Calendar, Clock, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { cn } from "@/src/lib/utils";
-import { blogPosts } from "../constants/blogPosts";
+import { Category, Post } from "../types/admin";
 
 const services = [
   {
@@ -73,6 +73,51 @@ const radarData = [
   { subject: 'Security', A: 110, fullMark: 150 },
   { subject: 'Real-time', A: 115, fullMark: 150 },
 ];
+
+interface PostagemInicio {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  date: string;
+  author: {
+    name: string;
+    avatar: string;
+  };
+  category: string;
+  image: string;
+  readTime: string;
+}
+
+function removerMarcacoesCodigoInicio(texto: string) {
+  return texto.replace(/\[code language=".*?"\](.*?)\[\/code\]/gs, "$1");
+}
+
+function removerHtmlInicio(texto: string) {
+  return texto.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function removerMarkdownInicio(texto: string) {
+  return texto
+    .replace(/!\[.*?\]\(.*?\)/g, " ")
+    .replace(/\[(.*?)\]\((.*?)\)/g, "$1")
+    .replace(/[*_~`>#-]/g, " ");
+}
+
+function montarResumoInicio(conteudo: string, tamanho = 170) {
+  const textoLimpo = removerMarkdownInicio(removerHtmlInicio(removerMarcacoesCodigoInicio(conteudo)))
+    .replace(/\s+/g, " ")
+    .trim();
+  if (textoLimpo.length <= tamanho) return textoLimpo;
+  return `${textoLimpo.slice(0, tamanho).trim()}...`;
+}
+
+function calcularTempoLeituraInicio(conteudo: string) {
+  const textoLimpo = removerHtmlInicio(removerMarcacoesCodigoInicio(conteudo));
+  const quantidadePalavras = textoLimpo.split(/\s+/).filter(Boolean).length;
+  const minutos = Math.max(1, Math.ceil(quantidadePalavras / 200));
+  return `${minutos} min`;
+}
 
 const NeuralNetwork = () => {
   const layers = [4, 6, 6, 4];
@@ -200,6 +245,9 @@ const TechCard: React.FC<{ tech: any, i: number }> = ({ tech, i }) => {
 };
 
 export default function Inicio() {
+  const [postagensApiInicio, setPostagensApiInicio] = useState<Post[]>([]);
+  const [categoriasApiInicio, setCategoriasApiInicio] = useState<Category[]>([]);
+
   useEffect(() => {
     const chaveControle = "controle_acesso_site_principal";
     const agora = Date.now();
@@ -211,6 +259,47 @@ export default function Inicio() {
     sessionStorage.setItem(chaveControle, agora.toString());
     fetch("/api/analytics/site-principal", { method: "POST" }).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    const carregarPostagensInicio = async () => {
+      try {
+        const [respostaPostagens, respostaCategorias] = await Promise.all([
+          fetch("/api/posts"),
+          fetch("/api/categories"),
+        ]);
+
+        if (respostaPostagens.ok) setPostagensApiInicio(await respostaPostagens.json());
+        if (respostaCategorias.ok) setCategoriasApiInicio(await respostaCategorias.json());
+      } catch (erro) {
+        console.error("Erro ao carregar postagens da home:", erro);
+      }
+    };
+
+    carregarPostagensInicio();
+  }, []);
+
+  const postagensInicio = useMemo<PostagemInicio[]>(() => {
+    return postagensApiInicio.slice(0, 3).map((postagem) => {
+      const nomeCategoria =
+        categoriasApiInicio.find((categoria) => categoria.id === postagem.categoryId)?.name || "Geral";
+
+      return {
+        id: postagem.id,
+        title: postagem.title,
+        slug: postagem.slug,
+        excerpt: montarResumoInicio(postagem.content),
+        date: new Date(postagem.createdAt).toLocaleDateString("pt-BR", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        }),
+        author: { name: "Douglas Paiani", avatar: "https://picsum.photos/seed/douglas/100/100" },
+        category: nomeCategoria,
+        image: `https://picsum.photos/seed/${postagem.slug}/1200/600`,
+        readTime: calcularTempoLeituraInicio(postagem.content),
+      };
+    });
+  }, [postagensApiInicio, categoriasApiInicio]);
 
   return (
     <main className="bg-black min-h-screen">
@@ -545,75 +634,77 @@ export default function Inicio() {
       </section>
 
       {/* Latest Blog Posts */}
-      <section className="py-24 px-6 max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
-          <div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-[10px] font-black uppercase tracking-[0.2em] mb-6"
+      {postagensInicio.length > 0 && (
+        <section className="py-24 px-6 max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
+            <div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-[10px] font-black uppercase tracking-[0.2em] mb-6"
+              >
+                <Sparkles size={12} />
+                Neural Insights
+              </motion.div>
+              <h2 className="text-3xl md:text-6xl font-black text-white tracking-tighter">
+                ÚLTIMOS <span className="text-cyan-400">INSIGHTS.</span>
+              </h2>
+            </div>
+            <Link
+              to="/blog"
+              className="group flex items-center gap-3 text-white/40 hover:text-cyan-400 transition-all text-xs font-bold uppercase tracking-widest"
             >
-              <Sparkles size={12} />
-              Neural Insights
-            </motion.div>
-            <h2 className="text-3xl md:text-6xl font-black text-white tracking-tighter">
-              ÚLTIMOS <span className="text-cyan-400">INSIGHTS.</span>
-            </h2>
+              Ver Blog Completo <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            </Link>
           </div>
-          <Link 
-            to="/blog" 
-            className="group flex items-center gap-3 text-white/40 hover:text-cyan-400 transition-all text-xs font-bold uppercase tracking-widest"
-          >
-            Ver Blog Completo <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-          </Link>
-        </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
-          {blogPosts.slice(0, 3).map((post, i) => (
-            <motion.article
-              key={post.id}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className="group relative rounded-[32px] bg-[#0a0a0a] border border-white/10 overflow-hidden hover:border-cyan-500/30 transition-all duration-500 flex flex-col"
-            >
-              <Link to={`/blog/${post.slug}`} className="flex-1 flex flex-col">
-                <div className="relative aspect-[16/10] overflow-hidden">
-                  <img 
-                    src={post.image} 
-                    alt={post.title}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-60 group-hover:opacity-100"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="absolute top-4 left-4 px-3 py-1 rounded-full bg-cyan-500 text-black text-[10px] font-black uppercase tracking-widest">
-                    {post.category}
-                  </div>
-                </div>
-                <div className="p-8 flex-1 flex flex-col">
-                  <div className="flex items-center gap-4 text-white/30 text-[10px] font-bold uppercase tracking-[0.2em] mb-4">
-                    <span className="flex items-center gap-1.5"><Calendar size={12} /> {post.date}</span>
-                    <span className="w-1 h-1 rounded-full bg-white/20" />
-                    <span className="flex items-center gap-1.5"><Clock size={12} /> {post.readTime}</span>
-                  </div>
-                  <h3 className="text-xl font-bold text-white mb-4 group-hover:text-cyan-400 transition-colors duration-300 tracking-tight leading-tight">
-                    {post.title}
-                  </h3>
-                  <p className="text-white/40 text-sm leading-relaxed mb-6 line-clamp-2 font-light flex-1">
-                    {post.excerpt}
-                  </p>
-                  <div className="pt-6 border-t border-white/5 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <img src={post.author.avatar} alt={post.author.name} className="w-6 h-6 rounded-full border border-white/10" />
-                      <span className="text-white/60 text-[10px] font-medium">{post.author.name}</span>
+          <div className="grid md:grid-cols-3 gap-8">
+            {postagensInicio.map((post, i) => (
+              <motion.article
+                key={post.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }}
+                className="group relative rounded-[32px] bg-[#0a0a0a] border border-white/10 overflow-hidden hover:border-cyan-500/30 transition-all duration-500 flex flex-col"
+              >
+                <Link to={`/blog/${post.slug}`} className="flex-1 flex flex-col">
+                  <div className="relative aspect-[16/10] overflow-hidden">
+                    <img
+                      src={post.image}
+                      alt={post.title}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-60 group-hover:opacity-100"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute top-4 left-4 px-3 py-1 rounded-full bg-cyan-500 text-black text-[10px] font-black uppercase tracking-widest">
+                      {post.category}
                     </div>
-                    <ArrowRight size={16} className="text-cyan-400 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                   </div>
-                </div>
-              </Link>
-            </motion.article>
-          ))}
-        </div>
-      </section>
+                  <div className="p-8 flex-1 flex flex-col">
+                    <div className="flex items-center gap-4 text-white/30 text-[10px] font-bold uppercase tracking-[0.2em] mb-4">
+                      <span className="flex items-center gap-1.5"><Calendar size={12} /> {post.date}</span>
+                      <span className="w-1 h-1 rounded-full bg-white/20" />
+                      <span className="flex items-center gap-1.5"><Clock size={12} /> {post.readTime}</span>
+                    </div>
+                    <h3 className="text-xl font-bold text-white mb-4 group-hover:text-cyan-400 transition-colors duration-300 tracking-tight leading-tight">
+                      {post.title}
+                    </h3>
+                    <p className="text-white/40 text-sm leading-relaxed mb-6 line-clamp-2 font-light flex-1">
+                      {post.excerpt}
+                    </p>
+                    <div className="pt-6 border-t border-white/5 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <img src={post.author.avatar} alt={post.author.name} className="w-6 h-6 rounded-full border border-white/10" />
+                        <span className="text-white/60 text-[10px] font-medium">{post.author.name}</span>
+                      </div>
+                      <ArrowRight size={16} className="text-cyan-400 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                    </div>
+                  </div>
+                </Link>
+              </motion.article>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Stats/Trust Section */}
       <section className="py-32 bg-black relative overflow-hidden">
