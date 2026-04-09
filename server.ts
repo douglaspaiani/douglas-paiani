@@ -10,10 +10,49 @@ import { Prisma, PrismaClient } from "@prisma/client";
 dotenv.config();
 
 const app = express();
-const PORTA = 3000;
 const SEGREDO_JWT = process.env.JWT_SECRET || "fallback_secret";
 const prisma = new PrismaClient();
 const CHAVE_ACESSO_SITE_PRINCIPAL = "site:principal";
+
+function obterPortaViaArgumentos(): number | null {
+  const argumentos = process.argv.slice(2);
+
+  for (let i = 0; i < argumentos.length; i += 1) {
+    const argumento = argumentos[i];
+
+    if (argumento === "-p" || argumento === "--port") {
+      const valorPorta = argumentos[i + 1];
+      const portaConvertida = Number(valorPorta);
+      if (Number.isInteger(portaConvertida) && portaConvertida > 0 && portaConvertida <= 65535) {
+        return portaConvertida;
+      }
+    }
+
+    if (argumento.startsWith("--port=")) {
+      const valorPorta = argumento.split("=")[1];
+      const portaConvertida = Number(valorPorta);
+      if (Number.isInteger(portaConvertida) && portaConvertida > 0 && portaConvertida <= 65535) {
+        return portaConvertida;
+      }
+    }
+  }
+
+  return null;
+}
+
+function obterPortaServidor(): number {
+  const portaPorArgumento = obterPortaViaArgumentos();
+  if (portaPorArgumento) return portaPorArgumento;
+
+  const portaPorAmbiente = Number(process.env.PORT);
+  if (Number.isInteger(portaPorAmbiente) && portaPorAmbiente > 0 && portaPorAmbiente <= 65535) {
+    return portaPorAmbiente;
+  }
+
+  return 3000;
+}
+
+const PORTA = obterPortaServidor();
 
 interface DadosToken {
   id: string;
