@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://douglaspaiani.com.br/sitemap.xml

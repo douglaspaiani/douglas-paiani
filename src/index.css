@@ -1,0 +1,51 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;500;700;900&display=swap');
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    overflow-x: hidden;
+  }
+  
+  body {
+    @apply bg-black text-white antialiased;
+    overflow-x: hidden;
+    width: 100%;
+  }
+
+  a, button {
+    @apply cursor-pointer;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-black;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-cyan-500/40 rounded-full hover:bg-cyan-500 transition-all duration-300 border-2 border-black;
+    box-shadow: inset 0 0 10px rgba(6, 182, 212, 0.2);
+  }
+}
+
+.text-glow {
+  text-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
+}
+
+@layer utilities {
+  @keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .animate-marquee {
+    animation: marquee 30s linear infinite;
+  }
+}
+

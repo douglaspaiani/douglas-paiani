@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  posts        Post[]
+
+  @@map("users")
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  posts     Post[]
+
+  @@map("categories")
+}
+
+model Post {
+  id             String    @id @default(cuid())
+  title          String
+  slug           String    @unique
+  content        String    @db.Text
+  categoryId     String
+  authorId       String
+  seoTitle       String?
+  seoDescription String?
+  seoKeywords    String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  category       Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  author         User      @relation(fields: [authorId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([categoryId])
+  @@index([authorId])
+  @@map("posts")
+}
+
+model Orcamento {
+  id            String    @id @default(cuid())
+  nome          String
+  email         String
+  telefone      String
+  empresa       String?
+  tipoProjeto   String
+  urgencia      String
+  descricao     String    @db.Text
+  visualizado   Boolean   @default(false)
+  visualizadoEm DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([visualizado])
+  @@index([createdAt])
+  @@map("orcamentos")
+}
+
+model MetricaAcesso {
+  id        String   @id @default(cuid())
+  chave     String   @unique
+  total     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([chave])
+  @@map("metricas_acesso")
+}
