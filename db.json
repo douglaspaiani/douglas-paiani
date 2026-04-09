@@ -1,0 +1,12 @@
+{
+  "users": [
+    {
+      "id": "1",
+      "username": "admin",
+      "password": "$2b$10$/GZXmxOSA7WSt9wXaB1ICuIr3YNCh0R1h/0ZrkHsDbFuv/4yciUu2",
+      "name": "Douglas Paiani"
+    }
+  ],
+  "posts": [],
+  "categories": []
+}
