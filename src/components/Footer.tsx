@@ -37,7 +37,7 @@ export default function Footer() {
             </div>
           </div>
 
-          <div>
+          <div className="hidden md:block">
             <h4 className="text-white font-bold mb-6 uppercase tracking-widest text-xs">Serviços</h4>
             <ul className="space-y-4">
               <li><Link to="/servicos/sites" className="text-white/40 hover:text-cyan-400 transition-colors text-sm flex items-center gap-2 group"><ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" /> Sites</Link></li>
@@ -47,7 +47,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          <div>
+          <div className="hidden md:block">
             <h4 className="text-white font-bold mb-6 uppercase tracking-widest text-xs">Empresa</h4>
             <ul className="space-y-4">
               <li><Link to="/sobre" className="text-white/40 hover:text-cyan-400 transition-colors text-sm flex items-center gap-2 group"><ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" /> Sobre</Link></li>
@@ -60,8 +60,13 @@ export default function Footer() {
             <h4 className="text-white font-bold mb-6 uppercase tracking-widest text-xs">Contato</h4>
             <ul className="space-y-4">
               <li className="flex items-center gap-3 text-white/40 text-sm">
-                <Mail size={16} className="text-cyan-400" />
-                contato@douglaspaiani.com.br
+                <Mail size={16} className="text-cyan-400 shrink-0" />
+                <a
+                  href="mailto:contato@douglaspaiani.com.br"
+                  className="hover:text-cyan-400 transition-colors"
+                >
+                  contato@douglaspaiani.com.br
+                </a>
               </li>
               <li className="flex items-center gap-3 text-white/40 text-sm">
                 <MapPin size={16} className="text-cyan-400" />
@@ -83,7 +88,7 @@ export default function Footer() {
         </div>
 
         <div className="pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
-          <p className="text-white/20 text-xs uppercase tracking-widest font-bold">
+          <p className="text-white/20 text-xs uppercase tracking-widest font-bold text-center md:text-left">
             © 2026 Douglas Paiani. Todos os direitos reservados.
           </p>
           <div className="flex gap-8">
