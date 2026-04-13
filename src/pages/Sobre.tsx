@@ -2,6 +2,7 @@ import { motion } from "motion/react";
 import { Helmet } from "react-helmet-async";
 import { Code2, Brain, Rocket, Terminal, Database, Cloud, Calendar, Award, Briefcase } from "lucide-react";
 import ServiceCard from "@/src/components/ServiceCard";
+import fotoDouglasPaiani from "@/src/images/douglaspaiani.jpg";
 
 const skills = [
   { name: "IA & Machine Learning", level: 98, icon: Brain },
@@ -39,6 +40,16 @@ export default function Sobre() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
           >
+            <motion.img
+              src={fotoDouglasPaiani}
+              alt="Foto de Douglas Paiani"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.15 }}
+              whileHover={{ scale: 1.04, rotate: -1 }}
+              className="mb-10 h-56 w-56 md:h-64 md:w-64 rounded-full border-2 border-cyan-400/60 shadow-[0_0_55px_rgba(6,182,212,0.45)] object-cover transition-all duration-500 hover:shadow-[0_0_75px_rgba(6,182,212,0.7)]"
+              loading="lazy"
+            />
             <h1 className="text-5xl md:text-7xl font-black text-white mb-8 tracking-tighter">
               15 ANOS DE <br />
               <span className="text-cyan-400">EXPERIÊNCIA.</span>
@@ -133,4 +144,3 @@ export default function Sobre() {
     </main>
   );
 }
-
