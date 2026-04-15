@@ -9,6 +9,7 @@ import {
   Twitter,
   Linkedin,
   Github,
+  Instagram,
   Sparkles,
   Brain,
   Cpu,
@@ -32,6 +33,11 @@ interface PostagemRender {
   author: {
     name: string;
     avatar: string;
+    cargo: string;
+    bio: string;
+    instagramUrl: string;
+    linkedinUrl: string;
+    githubUrl: string;
   };
   category: string;
   tags: string[];
@@ -40,6 +46,17 @@ interface PostagemRender {
   seoTitle?: string;
   seoDescription?: string;
   seoKeywords?: string;
+}
+
+interface PerfilAutorPublico {
+  id: string;
+  name: string;
+  cargo: string;
+  bio: string;
+  fotoPerfil: string;
+  instagramUrl: string;
+  linkedinUrl: string;
+  githubUrl: string;
 }
 
 function removerMarcacoesCodigo(texto: string) {
@@ -168,8 +185,28 @@ function extrairTags(seoKeywords?: string | null) {
     .filter(Boolean);
 }
 
-function mapearPostagem(postagem: Post, categorias: Category[]): PostagemRender {
+function mapearPostagem(postagem: Post, categorias: Category[], perfilAutor?: PerfilAutorPublico | null): PostagemRender {
   const categoriaNome = categorias.find((categoria) => categoria.id === postagem.categoryId)?.name || "Geral";
+  const autorPadrao = {
+    name: "Douglas Paiani",
+    cargo: "Autor & Engenheiro",
+    bio: "Engenheiro de Software com 15 anos de experiência, especialista em IA e criador de SaaS de alto nível.",
+    avatar: "https://picsum.photos/seed/douglas/100/100",
+    instagramUrl: "https://instagram.com/douglaspaiani",
+    linkedinUrl: "https://www.linkedin.com/in/douglaspaiani/",
+    githubUrl: "https://github.com/douglaspaiani",
+  };
+  const autor = perfilAutor
+    ? {
+        name: perfilAutor.name,
+        cargo: perfilAutor.cargo,
+        bio: perfilAutor.bio,
+        avatar: perfilAutor.fotoPerfil,
+        instagramUrl: perfilAutor.instagramUrl,
+        linkedinUrl: perfilAutor.linkedinUrl,
+        githubUrl: perfilAutor.githubUrl,
+      }
+    : autorPadrao;
 
   return {
     id: postagem.id,
@@ -182,7 +219,7 @@ function mapearPostagem(postagem: Post, categorias: Category[]): PostagemRender 
       month: "short",
       year: "numeric",
     }),
-    author: { name: "Douglas Paiani", avatar: "https://picsum.photos/seed/douglas/100/100" },
+    author: autor,
     category: categoriaNome,
     tags: extrairTags(postagem.seoKeywords),
     image: `https://picsum.photos/seed/${postagem.slug}/1200/600`,
@@ -199,16 +236,18 @@ export default function BlogPost() {
   const [postagemAtual, setPostagemAtual] = useState<PostagemRender | null>(null);
   const [postagensApi, setPostagensApi] = useState<Post[]>([]);
   const [categoriasApi, setCategoriasApi] = useState<Category[]>([]);
+  const [perfilAutor, setPerfilAutor] = useState<PerfilAutorPublico | null>(null);
 
   useEffect(() => {
     const carregarDadosPostagem = async () => {
       if (!slug) return;
 
       try {
-        const [respostaPostagem, respostaPostagens, respostaCategorias] = await Promise.all([
+        const [respostaPostagem, respostaPostagens, respostaCategorias, respostaAutor] = await Promise.all([
           fetch(`/api/posts/slug/${slug}`),
           fetch("/api/posts"),
           fetch("/api/categories"),
+          fetch("/api/publico/autor"),
         ]);
 
         if (!respostaPostagem.ok) {
@@ -219,10 +258,12 @@ export default function BlogPost() {
         const dadosCategorias: Category[] = respostaCategorias.ok ? await respostaCategorias.json() : [];
         const dadosPostagens: Post[] = respostaPostagens.ok ? await respostaPostagens.json() : [];
         const dadosPostagem: Post = await respostaPostagem.json();
+        const dadosAutor: PerfilAutorPublico | null = respostaAutor.ok ? await respostaAutor.json() : null;
 
         setCategoriasApi(dadosCategorias);
         setPostagensApi(dadosPostagens);
-        setPostagemAtual(mapearPostagem(dadosPostagem, dadosCategorias));
+        setPerfilAutor(dadosAutor);
+        setPostagemAtual(mapearPostagem(dadosPostagem, dadosCategorias, dadosAutor));
       } catch (erro) {
         console.error(erro);
         navigate("/blog");
@@ -255,18 +296,20 @@ export default function BlogPost() {
 
     return postagensApi
       .filter((postagem) => postagem.id !== postagemAtual.id)
-      .map((postagem) => mapearPostagem(postagem, categoriasApi))
+      .map((postagem) => mapearPostagem(postagem, categoriasApi, perfilAutor))
       .filter((postagem) => postagem.category === postagemAtual.category)
       .slice(0, 2);
-  }, [postagensApi, categoriasApi, postagemAtual]);
+  }, [postagensApi, categoriasApi, postagemAtual, perfilAutor]);
 
   const categoriasComTotal = useMemo(() => {
-    const postagensMapeadas = postagensApi.map((postagem) => mapearPostagem(postagem, categoriasApi));
+    const postagensMapeadas = postagensApi.map((postagem) =>
+      mapearPostagem(postagem, categoriasApi, perfilAutor),
+    );
     return categoriasApi.map((categoria) => ({
       nome: categoria.name,
       total: postagensMapeadas.filter((postagem) => postagem.category === categoria.name).length,
     }));
-  }, [categoriasApi, postagensApi]);
+  }, [categoriasApi, postagensApi, perfilAutor]);
 
   const renderizarConteudo = (conteudo: string) => {
     const partes = conteudo.split(/(\[code language=".*?"\].*?\[\/code\])/gs);
@@ -330,7 +373,7 @@ export default function BlogPost() {
               />
               <div>
                 <p className="text-white font-bold text-sm tracking-tight">{postagemAtual.author.name}</p>
-                <p className="text-white/30 text-[10px] uppercase tracking-widest font-bold">Autor & Engenheiro</p>
+                <p className="text-white/30 text-[10px] uppercase tracking-widest font-bold">{postagemAtual.author.cargo}</p>
               </div>
             </div>
             <div className="flex items-center gap-8 text-white/30 text-[10px] font-bold uppercase tracking-[0.2em]">
@@ -398,6 +441,27 @@ export default function BlogPost() {
                 <button className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-cyan-400 hover:border-cyan-500/50 transition-all">
                   <Share2 size={18} />
                 </button>
+              </div>
+            </div>
+
+            <div className="mt-16 rounded-[28px] border border-white/10 bg-white/5 p-8">
+              <p className="text-cyan-400 text-[10px] font-black uppercase tracking-[0.2em] mb-4">Sobre mim</p>
+              <div className="flex flex-col sm:flex-row gap-6 sm:items-center">
+                <img
+                  src={postagemAtual.author.avatar}
+                  alt={postagemAtual.author.name}
+                  className="w-20 h-20 rounded-full border border-cyan-500/40 object-cover"
+                />
+                <div className="flex-1">
+                  <h3 className="text-white text-xl font-bold tracking-tight">{postagemAtual.author.name}</h3>
+                  <p className="text-white/40 text-xs uppercase tracking-widest font-bold mt-1">{postagemAtual.author.cargo}</p>
+                  <p className="text-white/70 text-sm leading-relaxed mt-3">{postagemAtual.author.bio}</p>
+                  <div className="flex items-center gap-3 mt-4">
+                    <a href={postagemAtual.author.instagramUrl} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-cyan-400 hover:border-cyan-500/50 transition-all"><Instagram size={16} /></a>
+                    <a href={postagemAtual.author.linkedinUrl} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-cyan-400 hover:border-cyan-500/50 transition-all"><Linkedin size={16} /></a>
+                    <a href={postagemAtual.author.githubUrl} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-cyan-400 hover:border-cyan-500/50 transition-all"><Github size={16} /></a>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

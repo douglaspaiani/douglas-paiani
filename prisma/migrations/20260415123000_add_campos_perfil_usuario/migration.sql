@@ -1,0 +1,8 @@
+-- AlterTable
+ALTER TABLE `users`
+  ADD COLUMN `cargo` VARCHAR(191) NULL,
+  ADD COLUMN `bio` TEXT NULL,
+  ADD COLUMN `fotoPerfil` VARCHAR(191) NULL,
+  ADD COLUMN `instagramUrl` VARCHAR(191) NULL,
+  ADD COLUMN `linkedinUrl` VARCHAR(191) NULL,
+  ADD COLUMN `githubUrl` VARCHAR(191) NULL;

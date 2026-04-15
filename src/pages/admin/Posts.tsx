@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import DashboardLayout from '@/src/components/admin/DashboardLayout';
 import { useAuth } from '@/src/hooks/useAuth';
 import { motion, AnimatePresence } from 'motion/react';
-import { FileText, Plus, Trash2, Edit2, Sparkles, Search, Calendar, Tag } from 'lucide-react';
+import { FileText, Plus, Trash2, Edit2, Sparkles, Search, Calendar, Tag, Eye } from 'lucide-react';
 import { Post, Category } from '@/src/types/admin';
 import { Link } from 'react-router-dom';
 
@@ -109,6 +109,15 @@ export default function Posts() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  <Link
+                    to={`/blog/${post.slug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-3 text-white/20 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-xl transition-all"
+                    title="Visualizar postagem"
+                  >
+                    <Eye size={18} />
+                  </Link>
                   <Link
                     to={`/admin/posts/edit/${post.id}`}
                     className="p-3 text-white/20 hover:text-cyan-400 hover:bg-cyan-400/10 rounded-xl transition-all"

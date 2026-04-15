@@ -2,6 +2,12 @@ export interface User {
   id: string;
   username: string;
   name: string;
+  cargo?: string | null;
+  bio?: string | null;
+  fotoPerfil?: string | null;
+  instagramUrl?: string | null;
+  linkedinUrl?: string | null;
+  githubUrl?: string | null;
 }
 
 export interface Category {

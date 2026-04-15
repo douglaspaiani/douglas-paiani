@@ -91,6 +91,12 @@ const esquemaPerfil = z.object({
   name: z.string().trim().min(2).max(120).optional(),
   username: z.string().trim().min(3).max(60).optional(),
   password: z.string().min(6).max(120).optional().or(z.literal("")),
+  cargo: z.string().trim().max(120).optional().or(z.literal("")),
+  bio: z.string().trim().max(2000).optional().or(z.literal("")),
+  fotoPerfil: z.string().trim().url().max(500).optional().or(z.literal("")),
+  instagramUrl: z.string().trim().url().max(500).optional().or(z.literal("")),
+  linkedinUrl: z.string().trim().url().max(500).optional().or(z.literal("")),
+  githubUrl: z.string().trim().url().max(500).optional().or(z.literal("")),
 });
 
 const esquemaCriarCategoria = z.object({
@@ -166,14 +172,24 @@ function responderErroValidacao(erro: unknown, res: Response) {
   return res.status(500).json({ error: "Erro interno do servidor" });
 }
 
+function normalizarUrlComHttps(url: string) {
+  const urlSemEspacos = url.trim();
+  if (!urlSemEspacos) return "";
+  if (/^https?:\/\//i.test(urlSemEspacos)) {
+    return urlSemEspacos.replace(/\/+$/g, "");
+  }
+  return `https://${urlSemEspacos.replace(/\/+$/g, "")}`;
+}
+
 function obterConfiguracaoBackblaze(): ConfiguracaoBackblaze {
   const chaveId = process.env.BACKBLAZE_KEY_ID?.trim() || "";
   const chaveAplicacao = process.env.BACKBLAZE_APPLICATION_KEY?.trim() || "";
   const nomeBucket = process.env.BACKBLAZE_BUCKET_NAME?.trim() || "";
   const regiao = process.env.BACKBLAZE_REGION?.trim() || "";
-  const endpoint =
-    process.env.BACKBLAZE_ENDPOINT?.trim() || `https://s3.${regiao}.backblazeb2.com`;
-  const urlPublica = process.env.BACKBLAZE_PUBLIC_URL?.trim() || null;
+  const endpointPadrao = `https://s3.${regiao}.backblazeb2.com`;
+  const endpoint = normalizarUrlComHttps(process.env.BACKBLAZE_ENDPOINT?.trim() || endpointPadrao);
+  const urlPublicaBruta = process.env.BACKBLAZE_PUBLIC_URL?.trim() || "";
+  const urlPublica = urlPublicaBruta ? normalizarUrlComHttps(urlPublicaBruta) : null;
   const prefixoImagens = (process.env.BACKBLAZE_PREFIXO_IMAGENS?.trim() || "uploads/imagens")
     .replace(/^\/+|\/+$/g, "");
 
@@ -188,8 +204,8 @@ function obterConfiguracaoBackblaze(): ConfiguracaoBackblaze {
     chaveAplicacao,
     nomeBucket,
     regiao,
-    endpoint: endpoint.replace(/\/+$/g, ""),
-    urlPublica: urlPublica?.replace(/\/+$/g, "") || null,
+    endpoint,
+    urlPublica,
     prefixoImagens,
   };
 }
@@ -229,6 +245,46 @@ function montarUrlPublicaImagem(configuracao: ConfiguracaoBackblaze, caminhoArqu
   }
 
   return `${configuracao.endpoint}/${configuracao.nomeBucket}/${caminhoArquivo}`;
+}
+
+function obterValorOuNull(texto?: string) {
+  if (!texto) return null;
+  const textoLimpo = texto.trim();
+  return textoLimpo ? textoLimpo : null;
+}
+
+function obterLinksSociaisPadrao() {
+  return {
+    instagramUrl: "https://instagram.com/douglaspaiani",
+    linkedinUrl: "https://www.linkedin.com/in/douglaspaiani/",
+    githubUrl: "https://github.com/douglaspaiani",
+  };
+}
+
+function mapearPerfilPublicoUsuario(usuario: {
+  id: string;
+  name: string;
+  cargo: string | null;
+  bio: string | null;
+  fotoPerfil: string | null;
+  instagramUrl: string | null;
+  linkedinUrl: string | null;
+  githubUrl: string | null;
+}) {
+  const linksPadrao = obterLinksSociaisPadrao();
+
+  return {
+    id: usuario.id,
+    name: usuario.name,
+    cargo: usuario.cargo || "Autor & Engenheiro",
+    bio:
+      usuario.bio ||
+      "Engenheiro de Software com 15 anos de experiência, especialista em IA e criador de SaaS de alto nível.",
+    fotoPerfil: usuario.fotoPerfil || "https://picsum.photos/seed/douglas/100/100",
+    instagramUrl: usuario.instagramUrl || linksPadrao.instagramUrl,
+    linkedinUrl: usuario.linkedinUrl || linksPadrao.linkedinUrl,
+    githubUrl: usuario.githubUrl || linksPadrao.githubUrl,
+  };
 }
 
 async function incrementarMetricaAcesso(chave: string) {
@@ -290,6 +346,12 @@ app.post("/api/auth/login", async (req, res) => {
         id: usuario.id,
         username: usuario.username,
         name: usuario.name,
+        cargo: usuario.cargo,
+        bio: usuario.bio,
+        fotoPerfil: usuario.fotoPerfil,
+        instagramUrl: usuario.instagramUrl,
+        linkedinUrl: usuario.linkedinUrl,
+        githubUrl: usuario.githubUrl,
       },
     });
   } catch (erro) {
@@ -308,7 +370,17 @@ app.get("/api/auth/me", autenticarRequisicao, async (req: RequisicaoAutenticada,
     return res.status(404).json({ error: "Usuário não encontrado" });
   }
 
-  return res.json({ id: usuario.id, username: usuario.username, name: usuario.name });
+  return res.json({
+    id: usuario.id,
+    username: usuario.username,
+    name: usuario.name,
+    cargo: usuario.cargo,
+    bio: usuario.bio,
+    fotoPerfil: usuario.fotoPerfil,
+    instagramUrl: usuario.instagramUrl,
+    linkedinUrl: usuario.linkedinUrl,
+    githubUrl: usuario.githubUrl,
+  });
 });
 
 app.put("/api/auth/profile", autenticarRequisicao, async (req: RequisicaoAutenticada, res) => {
@@ -334,6 +406,30 @@ app.put("/api/auth/profile", autenticarRequisicao, async (req: RequisicaoAutenti
       dadosAtualizacao.passwordHash = await bcrypt.hash(dadosPerfil.password, 10);
     }
 
+    if (dadosPerfil.cargo !== undefined) {
+      dadosAtualizacao.cargo = obterValorOuNull(dadosPerfil.cargo);
+    }
+
+    if (dadosPerfil.bio !== undefined) {
+      dadosAtualizacao.bio = obterValorOuNull(dadosPerfil.bio);
+    }
+
+    if (dadosPerfil.fotoPerfil !== undefined) {
+      dadosAtualizacao.fotoPerfil = obterValorOuNull(dadosPerfil.fotoPerfil);
+    }
+
+    if (dadosPerfil.instagramUrl !== undefined) {
+      dadosAtualizacao.instagramUrl = obterValorOuNull(dadosPerfil.instagramUrl);
+    }
+
+    if (dadosPerfil.linkedinUrl !== undefined) {
+      dadosAtualizacao.linkedinUrl = obterValorOuNull(dadosPerfil.linkedinUrl);
+    }
+
+    if (dadosPerfil.githubUrl !== undefined) {
+      dadosAtualizacao.githubUrl = obterValorOuNull(dadosPerfil.githubUrl);
+    }
+
     if (Object.keys(dadosAtualizacao).length === 0) {
       return res.status(400).json({ error: "Nenhuma alteração enviada" });
     }
@@ -349,6 +445,12 @@ app.put("/api/auth/profile", autenticarRequisicao, async (req: RequisicaoAutenti
         id: usuarioAtualizado.id,
         username: usuarioAtualizado.username,
         name: usuarioAtualizado.name,
+        cargo: usuarioAtualizado.cargo,
+        bio: usuarioAtualizado.bio,
+        fotoPerfil: usuarioAtualizado.fotoPerfil,
+        instagramUrl: usuarioAtualizado.instagramUrl,
+        linkedinUrl: usuarioAtualizado.linkedinUrl,
+        githubUrl: usuarioAtualizado.githubUrl,
       },
     });
   } catch (erro) {
@@ -707,6 +809,33 @@ app.get("/api/posts/:id", async (req, res) => {
   }
 
   return res.json(postagem);
+});
+
+app.get("/api/publico/autor", async (_req, res) => {
+  try {
+    const usuario = await prisma.user.findFirst({
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        name: true,
+        cargo: true,
+        bio: true,
+        fotoPerfil: true,
+        instagramUrl: true,
+        linkedinUrl: true,
+        githubUrl: true,
+      },
+    });
+
+    if (!usuario) {
+      return res.status(404).json({ error: "Autor não encontrado" });
+    }
+
+    return res.json(mapearPerfilPublicoUsuario(usuario));
+  } catch (erro) {
+    console.error("Erro ao buscar perfil público do autor:", erro);
+    return res.status(500).json({ error: "Erro ao buscar autor" });
+  }
 });
 
 app.post("/api/posts", autenticarRequisicao, async (req: RequisicaoAutenticada, res) => {

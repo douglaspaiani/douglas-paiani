@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import DashboardLayout from '@/src/components/admin/DashboardLayout';
 import { useAuth } from '@/src/hooks/useAuth';
 import { motion } from 'motion/react';
-import { User, Lock, Save, Sparkles, CheckCircle2 } from 'lucide-react';
+import { User, Lock, Save, Sparkles, CheckCircle2, Image as IconeImagem, Briefcase, FileText, Instagram, Linkedin, Github } from 'lucide-react';
 
 export default function Profile() {
   const { user, token } = useAuth();
@@ -10,14 +10,28 @@ export default function Profile() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [fotoPerfil, setFotoPerfil] = useState('');
+  const [cargo, setCargo] = useState('');
+  const [bio, setBio] = useState('');
+  const [instagramUrl, setInstagramUrl] = useState('');
+  const [linkedinUrl, setLinkedinUrl] = useState('');
+  const [githubUrl, setGithubUrl] = useState('');
+  const [enviandoFotoPerfil, setEnviandoFotoPerfil] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const referenciaInputArquivo = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (user) {
       setName(user.name);
       setUsername(user.username || '');
+      setFotoPerfil(user.fotoPerfil || '');
+      setCargo(user.cargo || '');
+      setBio(user.bio || '');
+      setInstagramUrl(user.instagramUrl || 'https://instagram.com/douglaspaiani');
+      setLinkedinUrl(user.linkedinUrl || 'https://www.linkedin.com/in/douglaspaiani/');
+      setGithubUrl(user.githubUrl || 'https://github.com/douglaspaiani');
     }
   }, [user]);
 
@@ -43,6 +57,12 @@ export default function Profile() {
       const dadosAtualizacao: Record<string, string> = {
         name,
         username,
+        fotoPerfil,
+        cargo,
+        bio,
+        instagramUrl,
+        linkedinUrl,
+        githubUrl,
       };
 
       // Só envia senha quando realmente preenchida.
@@ -70,6 +90,38 @@ export default function Profile() {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const abrirSeletorFotoPerfil = () => {
+    referenciaInputArquivo.current?.click();
+  };
+
+  const enviarFotoPerfil = async (evento: React.ChangeEvent<HTMLInputElement>) => {
+    const arquivoImagem = evento.target.files?.[0];
+    evento.target.value = '';
+    if (!arquivoImagem || !token) return;
+
+    const formulario = new FormData();
+    formulario.append('imagem', arquivoImagem);
+
+    setEnviandoFotoPerfil(true);
+    setError('');
+
+    try {
+      const resposta = await fetch('/api/admin/upload-imagem', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formulario,
+      });
+      const dadosResposta = await resposta.json();
+      if (!resposta.ok) throw new Error(dadosResposta.error || 'Erro ao enviar foto de perfil');
+
+      setFotoPerfil(dadosResposta.url);
+    } catch (erro) {
+      setError(erro instanceof Error ? erro.message : 'Erro ao enviar foto de perfil');
+    } finally {
+      setEnviandoFotoPerfil(false);
     }
   };
 
@@ -116,6 +168,98 @@ export default function Profile() {
                 minLength={3}
                 required
               />
+            </div>
+
+            <div className="space-y-4">
+              <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest ml-4 flex items-center gap-2">
+                <IconeImagem size={12} /> Foto de Perfil (URL)
+              </label>
+              <input
+                ref={referenciaInputArquivo}
+                type="file"
+                accept="image/*"
+                onChange={enviarFotoPerfil}
+                className="hidden"
+              />
+              <input
+                type="url"
+                value={fotoPerfil}
+                onChange={(e) => setFotoPerfil(e.target.value)}
+                className="w-full px-6 py-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:border-cyan-500 focus:outline-none transition-all"
+                placeholder="https://..."
+              />
+              <button
+                type="button"
+                onClick={abrirSeletorFotoPerfil}
+                disabled={enviandoFotoPerfil}
+                className="px-4 py-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold uppercase tracking-widest hover:bg-cyan-500 hover:text-black transition-all disabled:opacity-50"
+              >
+                {enviandoFotoPerfil ? 'Enviando foto...' : 'Upload da foto'}
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest ml-4 flex items-center gap-2">
+                <Briefcase size={12} /> Cargo
+              </label>
+              <input
+                type="text"
+                value={cargo}
+                onChange={(e) => setCargo(e.target.value)}
+                className="w-full px-6 py-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:border-cyan-500 focus:outline-none transition-all"
+                placeholder="Autor & Engenheiro"
+              />
+            </div>
+
+            <div className="space-y-4">
+              <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest ml-4 flex items-center gap-2">
+                <FileText size={12} /> Bio (Sobre mim)
+              </label>
+              <textarea
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                className="w-full px-6 py-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:border-cyan-500 focus:outline-none transition-all min-h-[120px]"
+                placeholder="Escreva uma breve descrição para aparecer no fim dos posts."
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-4">
+                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest ml-4 flex items-center gap-2">
+                  <Instagram size={12} /> Instagram
+                </label>
+                <input
+                  type="url"
+                  value={instagramUrl}
+                  onChange={(e) => setInstagramUrl(e.target.value)}
+                  className="w-full px-6 py-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:border-cyan-500 focus:outline-none transition-all"
+                  placeholder="https://instagram.com/..."
+                />
+              </div>
+              <div className="space-y-4">
+                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest ml-4 flex items-center gap-2">
+                  <Linkedin size={12} /> LinkedIn
+                </label>
+                <input
+                  type="url"
+                  value={linkedinUrl}
+                  onChange={(e) => setLinkedinUrl(e.target.value)}
+                  className="w-full px-6 py-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:border-cyan-500 focus:outline-none transition-all"
+                  placeholder="https://www.linkedin.com/in/..."
+                />
+              </div>
+              <div className="space-y-4">
+                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest ml-4 flex items-center gap-2">
+                  <Github size={12} /> GitHub
+                </label>
+                <input
+                  type="url"
+                  value={githubUrl}
+                  onChange={(e) => setGithubUrl(e.target.value)}
+                  className="w-full px-6 py-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:border-cyan-500 focus:outline-none transition-all"
+                  placeholder="https://github.com/..."
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

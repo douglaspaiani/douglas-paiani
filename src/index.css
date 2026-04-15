@@ -80,11 +80,20 @@
     padding-left: 1.5rem;
   }
 
+  .conteudo-blog-formatado ul {
+    list-style-type: disc !important;
+    list-style-position: outside;
+  }
+
   .conteudo-blog-formatado li {
     margin: 0.35rem 0;
   }
 
-  .conteudo-blog-formatado ul li::marker,
+  .conteudo-blog-formatado ul li::marker {
+    color: rgb(56 189 248);
+    font-size: 1.1em;
+  }
+
   .conteudo-blog-formatado ol li::marker {
     color: rgb(34 211 238);
     font-weight: 700;
