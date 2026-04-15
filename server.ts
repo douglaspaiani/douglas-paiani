@@ -264,10 +264,56 @@ function processarUploadImagem(req: Request, res: Response, next: NextFunction) 
 
 function montarUrlPublicaImagem(configuracao: ConfiguracaoBackblaze, caminhoArquivo: string) {
   if (configuracao.urlPublica) {
-    return `${configuracao.urlPublica}/${caminhoArquivo}`;
+    const urlPublicaSemBarra = configuracao.urlPublica.replace(/\/+$/g, "");
+
+    // Compatibilidade com Backblaze "friendly URL" (ex.: https://f005.backblazeb2.com),
+    // que exige o formato /file/<bucket>/<arquivo>.
+    if (/^https?:\/\/f\d+\.backblazeb2\.com$/i.test(urlPublicaSemBarra)) {
+      return `${urlPublicaSemBarra}/file/${configuracao.nomeBucket}/${caminhoArquivo}`;
+    }
+
+    // Se a URL já vier com "/file/<bucket>", apenas concatena o caminho.
+    if (new RegExp(`/file/${configuracao.nomeBucket}$`, "i").test(urlPublicaSemBarra)) {
+      return `${urlPublicaSemBarra}/${caminhoArquivo}`;
+    }
+
+    // Se vier só com "/file", completa com bucket.
+    if (/\/file$/i.test(urlPublicaSemBarra)) {
+      return `${urlPublicaSemBarra}/${configuracao.nomeBucket}/${caminhoArquivo}`;
+    }
+
+    return `${urlPublicaSemBarra}/${caminhoArquivo}`;
   }
 
   return `${configuracao.endpoint}/${configuracao.nomeBucket}/${caminhoArquivo}`;
+}
+
+function normalizarUrlImagemBackblaze(urlImagem: string | null | undefined) {
+  if (!urlImagem) return null;
+  const urlLimpa = urlImagem.trim();
+  if (!urlLimpa) return null;
+
+  const nomeBucket = process.env.BACKBLAZE_BUCKET_NAME?.trim() || "";
+  if (!nomeBucket) return urlLimpa;
+
+  try {
+    const url = new URL(urlLimpa);
+    const ehHostFriendlyBackblaze = /^f\d+\.backblazeb2\.com$/i.test(url.hostname);
+    if (!ehHostFriendlyBackblaze) return urlLimpa;
+
+    if (url.pathname.startsWith(`/file/${nomeBucket}/`)) {
+      return urlLimpa;
+    }
+
+    if (url.pathname.startsWith("/file/")) {
+      return urlLimpa;
+    }
+
+    const caminhoSemBarraInicial = url.pathname.replace(/^\/+/, "");
+    return `${url.protocol}//${url.host}/file/${nomeBucket}/${caminhoSemBarraInicial}`;
+  } catch {
+    return urlLimpa;
+  }
 }
 
 function obterValorOuNull(texto?: string) {
@@ -303,7 +349,7 @@ function mapearPerfilPublicoUsuario(usuario: {
     bio:
       usuario.bio ||
       "Engenheiro de Software com 15 anos de experiência, especialista em IA e criador de SaaS de alto nível.",
-    fotoPerfil: usuario.fotoPerfil || "https://picsum.photos/seed/douglas/100/100",
+    fotoPerfil: normalizarUrlImagemBackblaze(usuario.fotoPerfil) || "https://picsum.photos/seed/douglas/100/100",
     instagramUrl: usuario.instagramUrl || linksPadrao.instagramUrl,
     linkedinUrl: usuario.linkedinUrl || linksPadrao.linkedinUrl,
     githubUrl: usuario.githubUrl || linksPadrao.githubUrl,
@@ -371,7 +417,7 @@ app.post("/api/auth/login", async (req, res) => {
         name: usuario.name,
         cargo: usuario.cargo,
         bio: usuario.bio,
-        fotoPerfil: usuario.fotoPerfil,
+        fotoPerfil: normalizarUrlImagemBackblaze(usuario.fotoPerfil),
         instagramUrl: usuario.instagramUrl,
         linkedinUrl: usuario.linkedinUrl,
         githubUrl: usuario.githubUrl,
@@ -399,7 +445,7 @@ app.get("/api/auth/me", autenticarRequisicao, async (req: RequisicaoAutenticada,
     name: usuario.name,
     cargo: usuario.cargo,
     bio: usuario.bio,
-    fotoPerfil: usuario.fotoPerfil,
+    fotoPerfil: normalizarUrlImagemBackblaze(usuario.fotoPerfil),
     instagramUrl: usuario.instagramUrl,
     linkedinUrl: usuario.linkedinUrl,
     githubUrl: usuario.githubUrl,
@@ -470,7 +516,7 @@ app.put("/api/auth/profile", autenticarRequisicao, async (req: RequisicaoAutenti
         name: usuarioAtualizado.name,
         cargo: usuarioAtualizado.cargo,
         bio: usuarioAtualizado.bio,
-        fotoPerfil: usuarioAtualizado.fotoPerfil,
+        fotoPerfil: normalizarUrlImagemBackblaze(usuarioAtualizado.fotoPerfil),
         instagramUrl: usuarioAtualizado.instagramUrl,
         linkedinUrl: usuarioAtualizado.linkedinUrl,
         githubUrl: usuarioAtualizado.githubUrl,
