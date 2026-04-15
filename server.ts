@@ -6,6 +6,9 @@ import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { z } from "zod";
 import { Prisma, PrismaClient } from "@prisma/client";
+import multer from "multer";
+import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { randomUUID } from "crypto";
 
 dotenv.config();
 
@@ -13,6 +16,22 @@ const app = express();
 const SEGREDO_JWT = process.env.JWT_SECRET || "fallback_secret";
 const prisma = new PrismaClient();
 const CHAVE_ACESSO_SITE_PRINCIPAL = "site:principal";
+const uploadEmMemoria = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
+
+interface ConfiguracaoBackblaze {
+  chaveId: string;
+  chaveAplicacao: string;
+  nomeBucket: string;
+  regiao: string;
+  endpoint: string;
+  urlPublica: string | null;
+  prefixoImagens: string;
+}
+
+let clienteBackblazeEmCache: S3Client | null = null;
 
 function obterPortaViaArgumentos(): number | null {
   const argumentos = process.argv.slice(2);
@@ -145,6 +164,71 @@ function responderErroValidacao(erro: unknown, res: Response) {
   }
 
   return res.status(500).json({ error: "Erro interno do servidor" });
+}
+
+function obterConfiguracaoBackblaze(): ConfiguracaoBackblaze {
+  const chaveId = process.env.BACKBLAZE_KEY_ID?.trim() || "";
+  const chaveAplicacao = process.env.BACKBLAZE_APPLICATION_KEY?.trim() || "";
+  const nomeBucket = process.env.BACKBLAZE_BUCKET_NAME?.trim() || "";
+  const regiao = process.env.BACKBLAZE_REGION?.trim() || "";
+  const endpoint =
+    process.env.BACKBLAZE_ENDPOINT?.trim() || `https://s3.${regiao}.backblazeb2.com`;
+  const urlPublica = process.env.BACKBLAZE_PUBLIC_URL?.trim() || null;
+  const prefixoImagens = (process.env.BACKBLAZE_PREFIXO_IMAGENS?.trim() || "uploads/imagens")
+    .replace(/^\/+|\/+$/g, "");
+
+  if (!chaveId || !chaveAplicacao || !nomeBucket || !regiao) {
+    throw new Error(
+      "Configuração Backblaze incompleta. Defina BACKBLAZE_KEY_ID, BACKBLAZE_APPLICATION_KEY, BACKBLAZE_BUCKET_NAME e BACKBLAZE_REGION.",
+    );
+  }
+
+  return {
+    chaveId,
+    chaveAplicacao,
+    nomeBucket,
+    regiao,
+    endpoint: endpoint.replace(/\/+$/g, ""),
+    urlPublica: urlPublica?.replace(/\/+$/g, "") || null,
+    prefixoImagens,
+  };
+}
+
+function obterClienteBackblaze(configuracao: ConfiguracaoBackblaze) {
+  if (clienteBackblazeEmCache) return clienteBackblazeEmCache;
+
+  clienteBackblazeEmCache = new S3Client({
+    region: configuracao.regiao,
+    endpoint: configuracao.endpoint,
+    forcePathStyle: true,
+    credentials: {
+      accessKeyId: configuracao.chaveId,
+      secretAccessKey: configuracao.chaveAplicacao,
+    },
+  });
+
+  return clienteBackblazeEmCache;
+}
+
+function obterExtensaoPorMimeType(mimeType: string) {
+  const mapaExtensoes: Record<string, string> = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+    "image/gif": "gif",
+    "image/avif": "avif",
+    "image/svg+xml": "svg",
+  };
+
+  return mapaExtensoes[mimeType] || "bin";
+}
+
+function montarUrlPublicaImagem(configuracao: ConfiguracaoBackblaze, caminhoArquivo: string) {
+  if (configuracao.urlPublica) {
+    return `${configuracao.urlPublica}/${caminhoArquivo}`;
+  }
+
+  return `${configuracao.endpoint}/${configuracao.nomeBucket}/${caminhoArquivo}`;
 }
 
 async function incrementarMetricaAcesso(chave: string) {
@@ -719,6 +803,47 @@ app.delete("/api/posts/:id", autenticarRequisicao, async (req, res) => {
     return res.status(500).json({ error: "Erro ao excluir postagem" });
   }
 });
+
+app.post(
+  "/api/admin/upload-imagem",
+  autenticarRequisicao,
+  uploadEmMemoria.single("imagem"),
+  async (req, res) => {
+    try {
+      const arquivo = req.file;
+      if (!arquivo) {
+        return res.status(400).json({ error: "Nenhuma imagem foi enviada" });
+      }
+
+      if (!arquivo.mimetype.startsWith("image/")) {
+        return res.status(400).json({ error: "Arquivo inválido. Envie apenas imagens." });
+      }
+
+      const configuracaoBackblaze = obterConfiguracaoBackblaze();
+      const clienteBackblaze = obterClienteBackblaze(configuracaoBackblaze);
+      const extensao = obterExtensaoPorMimeType(arquivo.mimetype);
+
+      // Gera um caminho único por arquivo para evitar colisão entre uploads simultâneos.
+      const caminhoArquivo = `${configuracaoBackblaze.prefixoImagens}/${Date.now()}-${randomUUID()}.${extensao}`;
+
+      await clienteBackblaze.send(
+        new PutObjectCommand({
+          Bucket: configuracaoBackblaze.nomeBucket,
+          Key: caminhoArquivo,
+          Body: arquivo.buffer,
+          ContentType: arquivo.mimetype,
+          CacheControl: "public, max-age=31536000, immutable",
+        }),
+      );
+
+      const url = montarUrlPublicaImagem(configuracaoBackblaze, caminhoArquivo);
+      return res.status(201).json({ url, caminhoArquivo });
+    } catch (erro) {
+      console.error("Erro no upload para Backblaze:", erro);
+      return res.status(500).json({ error: "Erro ao enviar imagem para o Backblaze" });
+    }
+  },
+);
 
 async function iniciarServidor() {
   await garantirAdministradorInicial();

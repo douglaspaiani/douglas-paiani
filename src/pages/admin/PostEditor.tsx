@@ -3,7 +3,7 @@ import DashboardLayout from '@/src/components/admin/DashboardLayout';
 import { useAuth } from '@/src/hooks/useAuth';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Save, ArrowLeft, Sparkles, Code, Layout, FileText, Tag, Bold, Italic, Quote, Heading1, Heading2, Heading3, Heading4, List, Link as IconeLink } from 'lucide-react';
+import { Save, ArrowLeft, Sparkles, Code, Layout, FileText, Tag, Bold, Italic, Quote, Heading1, Heading2, Heading3, Heading4, List, Link as IconeLink, ImageUp } from 'lucide-react';
 import { Category, Post } from '@/src/types/admin';
 
 export default function PostEditor() {
@@ -21,7 +21,9 @@ export default function PostEditor() {
   const [seoKeywords, setSeoKeywords] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
+  const [enviandoImagem, setEnviandoImagem] = useState(false);
   const referenciaTextareaConteudo = useRef<HTMLTextAreaElement | null>(null);
+  const referenciaInputImagem = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     fetchCategories();
@@ -144,6 +146,46 @@ export default function PostEditor() {
     atualizarConteudo(novoConteudo);
   };
 
+  const abrirSeletorImagem = () => {
+    referenciaInputImagem.current?.click();
+  };
+
+  const enviarImagemSelecionada = async (evento: React.ChangeEvent<HTMLInputElement>) => {
+    const arquivoImagem = evento.target.files?.[0];
+    evento.target.value = '';
+
+    if (!arquivoImagem) return;
+    if (!token) {
+      alert('Você precisa estar autenticado para enviar imagens.');
+      return;
+    }
+
+    const formulario = new FormData();
+    formulario.append('imagem', arquivoImagem);
+
+    setEnviandoImagem(true);
+
+    try {
+      const resposta = await fetch('/api/admin/upload-imagem', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formulario,
+      });
+
+      const dadosResposta = await resposta.json();
+      if (!resposta.ok) {
+        throw new Error(dadosResposta.error || 'Falha no upload da imagem');
+      }
+
+      inserirTrechoNoConteudo(`\n![${arquivoImagem.name}](${dadosResposta.url})\n`);
+    } catch (erro) {
+      console.error(erro);
+      alert(erro instanceof Error ? erro.message : 'Erro ao enviar imagem');
+    } finally {
+      setEnviandoImagem(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -228,6 +270,13 @@ export default function PostEditor() {
                   <Layout size={12} /> Conteúdo
                 </label>
                 <div className="flex items-center flex-wrap gap-2">
+                  <input
+                    ref={referenciaInputImagem}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={enviarImagemSelecionada}
+                  />
                   <button
                     type="button"
                     onClick={() => aplicarFormatacaoSelecao('**', '**', 'negrito')}
@@ -251,6 +300,15 @@ export default function PostEditor() {
                     title="Link"
                   >
                     <IconeLink size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={abrirSeletorImagem}
+                    disabled={enviandoImagem}
+                    className="p-2 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:text-cyan-400 hover:border-cyan-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={enviandoImagem ? 'Enviando imagem...' : 'Enviar imagem'}
+                  >
+                    <ImageUp size={14} />
                   </button>
                   <button
                     type="button"
