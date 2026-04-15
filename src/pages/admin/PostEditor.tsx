@@ -138,12 +138,8 @@ export default function PostEditor() {
   const [loading, setLoading] = useState(false);
   const [enviandoImagem, setEnviandoImagem] = useState(false);
   const [slugEditadoManualmente, setSlugEditadoManualmente] = useState(false);
-  const [podeDesfazer, setPodeDesfazer] = useState(false);
-  const [podeRefazer, setPodeRefazer] = useState(false);
-  const referenciaTextareaConteudo = useRef<HTMLTextAreaElement | null>(null);
+  const referenciaEditorConteudo = useRef<HTMLDivElement | null>(null);
   const referenciaInputImagem = useRef<HTMLInputElement | null>(null);
-  const referenciaHistoricoConteudo = useRef<string[]>(['']);
-  const referenciaIndiceHistorico = useRef(0);
 
   const quantidadePalavras = useMemo(
     () => content.trim().split(/\s+/).filter(Boolean).length,
@@ -169,43 +165,18 @@ export default function PostEditor() {
     });
   }, [content]);
 
-  const sincronizarBotoesHistorico = () => {
-    const indice = referenciaIndiceHistorico.current;
-    const historico = referenciaHistoricoConteudo.current;
-    setPodeDesfazer(indice > 0);
-    setPodeRefazer(indice < historico.length - 1);
-  };
-
-  const reiniciarHistorico = (conteudoInicial: string) => {
-    referenciaHistoricoConteudo.current = [conteudoInicial];
-    referenciaIndiceHistorico.current = 0;
-    sincronizarBotoesHistorico();
-  };
-
-  const registrarHistoricoConteudo = (novoConteudo: string) => {
-    const historicoAtual = referenciaHistoricoConteudo.current;
-    const indiceAtual = referenciaIndiceHistorico.current;
-
-    if (historicoAtual[indiceAtual] === novoConteudo) return;
-
-    const historicoAjustado = historicoAtual.slice(0, indiceAtual + 1);
-    historicoAjustado.push(novoConteudo);
-
-    const tamanhoMaximoHistorico = 200;
-    if (historicoAjustado.length > tamanhoMaximoHistorico) {
-      historicoAjustado.splice(0, historicoAjustado.length - tamanhoMaximoHistorico);
-    }
-
-    referenciaHistoricoConteudo.current = historicoAjustado;
-    referenciaIndiceHistorico.current = historicoAjustado.length - 1;
-    sincronizarBotoesHistorico();
-  };
-
   useEffect(() => {
     fetchCategories();
     if (isEditing) fetchPost();
-    if (!isEditing) reiniciarHistorico('');
   }, [id]);
+
+  useEffect(() => {
+    const editor = referenciaEditorConteudo.current;
+    if (!editor) return;
+    if (editor.innerHTML !== content) {
+      editor.innerHTML = content;
+    }
+  }, [content]);
 
   const fetchCategories = async () => {
     const res = await fetch('/api/categories');
@@ -224,7 +195,6 @@ export default function PostEditor() {
     setSlugEditadoManualmente(true);
     setCategoryId(post.categoryId);
     setContent(post.content);
-    reiniciarHistorico(post.content);
     setSeoTitle(post.seoTitle || '');
     setSeoDescription(post.seoDescription || '');
     setSeoKeywords(post.seoKeywords || '');
@@ -247,168 +217,55 @@ export default function PostEditor() {
     }
   };
 
+  const atualizarConteudoComEditor = () => {
+    const html = referenciaEditorConteudo.current?.innerHTML || '';
+    setContent(html);
+  };
+
+  const executarComandoEditor = (comando: string, valor?: string) => {
+    const editor = referenciaEditorConteudo.current;
+    if (!editor) return;
+    editor.focus();
+    document.execCommand(comando, false, valor);
+    atualizarConteudoComEditor();
+  };
+
   const insertCodeSnippet = () => {
-    inserirTrechoNoConteudo('\n[code language="javascript"]\n// Seu código aqui\n[/code]\n');
+    executarComandoEditor(
+      'insertHTML',
+      `<p>[code language="javascript"]</p><p>// Seu código aqui</p><p>[/code]</p><p><br></p>`,
+    );
   };
 
-  const atualizarConteudo = (novoConteudo: string, registrarNoHistorico = true) => {
-    setContent(novoConteudo);
-    if (registrarNoHistorico) {
-      registrarHistoricoConteudo(novoConteudo);
-    }
-  };
+  const aplicarNegrito = () => executarComandoEditor('bold');
+  const aplicarItalico = () => executarComandoEditor('italic');
+  const aplicarTitulo = () => executarComandoEditor('formatBlock', '<h2>');
+  const aplicarLista = () => executarComandoEditor('insertUnorderedList');
+  const aplicarListaOrdenada = () => executarComandoEditor('insertOrderedList');
+  const aplicarCitacao = () => executarComandoEditor('formatBlock', '<blockquote>');
+  const aplicarDestaque = () => executarComandoEditor('hiliteColor', '#0ea5b7');
+  const desfazerConteudo = () => executarComandoEditor('undo');
+  const refazerConteudo = () => executarComandoEditor('redo');
 
-  const inserirTrechoNoConteudo = (trecho: string) => {
-    const textarea = referenciaTextareaConteudo.current;
-    if (!textarea) {
-      atualizarConteudo(content + trecho);
-      return;
-    }
-
-    const inicio = textarea.selectionStart;
-    const fim = textarea.selectionEnd;
-    const antes = content.slice(0, inicio);
-    const depois = content.slice(fim);
-    const conteudoAtualizado = `${antes}${trecho}${depois}`;
-    atualizarConteudo(conteudoAtualizado);
-
-    requestAnimationFrame(() => {
-      const posicaoCursor = inicio + trecho.length;
-      textarea.focus();
-      textarea.setSelectionRange(posicaoCursor, posicaoCursor);
-    });
-  };
-
-  // Aplica formatação no trecho selecionado do editor e reposiciona o cursor.
-  const aplicarFormatacaoSelecao = (abertura: string, fechamento = '', textoPadrao = 'texto') => {
-    const textarea = referenciaTextareaConteudo.current;
-    if (!textarea) return;
-
-    const inicio = textarea.selectionStart;
-    const fim = textarea.selectionEnd;
-    const trechoSelecionado = content.slice(inicio, fim);
-    const trechoFormatado = trechoSelecionado || textoPadrao;
-
-    const novoConteudo =
-      content.slice(0, inicio) +
-      abertura +
-      trechoFormatado +
-      fechamento +
-      content.slice(fim);
-
-    atualizarConteudo(novoConteudo);
-
-    requestAnimationFrame(() => {
-      const inicioSelecao = inicio + abertura.length;
-      const fimSelecao = inicioSelecao + trechoFormatado.length;
-      textarea.focus();
-      textarea.setSelectionRange(inicioSelecao, fimSelecao);
-    });
-  };
-
-  const aplicarTitulo = (nivel: 1 | 2 | 3 | 4) => {
-    const prefixo = '#'.repeat(nivel) + ' ';
-    aplicarFormatacaoSelecao(prefixo, '', `Título H${nivel}`);
-  };
-
-  const aplicarCitacao = () => {
-    const textarea = referenciaTextareaConteudo.current;
-    if (!textarea) return;
-
-    const inicio = textarea.selectionStart;
-    const fim = textarea.selectionEnd;
-    const trechoSelecionado = content.slice(inicio, fim) || 'Citação';
-    const linhasCitadas = trechoSelecionado
-      .split('\n')
-      .map((linha) => `> ${linha}`)
-      .join('\n');
-
-    const novoConteudo =
-      content.slice(0, inicio) + linhasCitadas + content.slice(fim);
-
-    atualizarConteudo(novoConteudo);
-  };
-
-  const aplicarLista = () => {
-    const textarea = referenciaTextareaConteudo.current;
-    if (!textarea) return;
-
-    const inicio = textarea.selectionStart;
-    const fim = textarea.selectionEnd;
-    const trechoSelecionado = content.slice(inicio, fim) || 'Item 1\nItem 2';
-    const linhasLista = trechoSelecionado
-      .split('\n')
-      .map((linha) => `- ${linha}`)
-      .join('\n');
-
-    const novoConteudo = content.slice(0, inicio) + linhasLista + content.slice(fim);
-    atualizarConteudo(novoConteudo);
-  };
-
-  const aplicarListaOrdenada = () => {
-    const textarea = referenciaTextareaConteudo.current;
-    if (!textarea) return;
-
-    const inicio = textarea.selectionStart;
-    const fim = textarea.selectionEnd;
-    const trechoSelecionado = content.slice(inicio, fim) || 'Item 1\nItem 2';
-    const linhasListaOrdenada = trechoSelecionado
-      .split('\n')
-      .map((linha, indice) => `${indice + 1}. ${linha}`)
-      .join('\n');
-
-    const novoConteudo = content.slice(0, inicio) + linhasListaOrdenada + content.slice(fim);
-    atualizarConteudo(novoConteudo);
-  };
-
-  const aplicarDestaque = () => {
-    const textarea = referenciaTextareaConteudo.current;
-    if (!textarea) return;
-
-    const inicio = textarea.selectionStart;
-    const fim = textarea.selectionEnd;
-    const trechoSelecionado = content.slice(inicio, fim) || 'Ponto importante';
-    const blocoDestaque = `> 🔥 **${trechoSelecionado}**`;
-    const novoConteudo = content.slice(0, inicio) + blocoDestaque + content.slice(fim);
-    atualizarConteudo(novoConteudo);
-  };
-
-  const desfazerConteudo = () => {
-    const indiceAtual = referenciaIndiceHistorico.current;
-    if (indiceAtual <= 0) return;
-
-    const novoIndice = indiceAtual - 1;
-    referenciaIndiceHistorico.current = novoIndice;
-    const conteudoHistorico = referenciaHistoricoConteudo.current[novoIndice] || '';
-    atualizarConteudo(conteudoHistorico, false);
-    sincronizarBotoesHistorico();
-  };
-
-  const refazerConteudo = () => {
-    const indiceAtual = referenciaIndiceHistorico.current;
-    const historico = referenciaHistoricoConteudo.current;
-    if (indiceAtual >= historico.length - 1) return;
-
-    const novoIndice = indiceAtual + 1;
-    referenciaIndiceHistorico.current = novoIndice;
-    const conteudoHistorico = historico[novoIndice] || '';
-    atualizarConteudo(conteudoHistorico, false);
-    sincronizarBotoesHistorico();
+  const aplicarLink = () => {
+    const url = window.prompt('Informe a URL do link', 'https://');
+    if (!url) return;
+    executarComandoEditor('createLink', url);
   };
 
   const inserirBlocoRapido = (
     tipoBloco: 'titulo' | 'subtitulo' | 'lista' | 'citacao' | 'codigo' | 'divisor',
   ) => {
-    const blocos = {
-      titulo: '\n# Título principal\n\n',
-      subtitulo: '\n## Subtítulo da seção\n\n',
-      lista: '\n- Item 1\n- Item 2\n- Item 3\n\n',
-      citacao: '\n> Destaque importante do conteúdo.\n\n',
-      codigo: '\n[code language="javascript"]\n// Seu código aqui\n[/code]\n\n',
-      divisor: '\n---\n\n',
+    const blocosHtml = {
+      titulo: '<h2>Título principal</h2><p><br></p>',
+      subtitulo: '<h3>Subtítulo da seção</h3><p><br></p>',
+      lista: '<ul><li>Item 1</li><li>Item 2</li><li>Item 3</li></ul><p><br></p>',
+      citacao: '<blockquote>Destaque importante do conteúdo.</blockquote><p><br></p>',
+      codigo: '<p>[code language="javascript"]</p><p>// Seu código aqui</p><p>[/code]</p><p><br></p>',
+      divisor: '<hr/><p><br></p>',
     };
 
-    inserirTrechoNoConteudo(blocos[tipoBloco]);
+    executarComandoEditor('insertHTML', blocosHtml[tipoBloco]);
   };
 
   const abrirSeletorImagem = () => {
@@ -442,7 +299,10 @@ export default function PostEditor() {
         throw new Error(dadosResposta.error || 'Falha no upload da imagem');
       }
 
-      inserirTrechoNoConteudo(`\n![${arquivoImagem.name}](${dadosResposta.url})\n`);
+      executarComandoEditor(
+        'insertHTML',
+        `<figure><img src="${dadosResposta.url}" alt="${arquivoImagem.name}" /></figure><p><br></p>`,
+      );
     } catch (erro) {
       console.error(erro);
       alert(erro instanceof Error ? erro.message : 'Erro ao enviar imagem');
@@ -546,43 +406,41 @@ export default function PostEditor() {
                   <button
                     type="button"
                     onClick={desfazerConteudo}
-                    disabled={!podeDesfazer}
-                    className="px-4 py-2 rounded-2xl border border-white/10 bg-[#1a2131] text-white/80 text-sm font-semibold flex items-center gap-2 hover:border-cyan-500/40 hover:text-cyan-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="px-4 py-2 rounded-2xl border border-white/10 bg-[#1a2131] text-white/80 text-sm font-semibold flex items-center gap-2 hover:border-cyan-500/40 hover:text-cyan-300 transition-all"
                   >
                     <Undo2 size={16} /> Desfazer
                   </button>
                   <button
                     type="button"
                     onClick={refazerConteudo}
-                    disabled={!podeRefazer}
-                    className="px-4 py-2 rounded-2xl border border-white/10 bg-[#1a2131] text-white/80 text-sm font-semibold flex items-center gap-2 hover:border-cyan-500/40 hover:text-cyan-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="px-4 py-2 rounded-2xl border border-white/10 bg-[#1a2131] text-white/80 text-sm font-semibold flex items-center gap-2 hover:border-cyan-500/40 hover:text-cyan-300 transition-all"
                   >
                     <Redo2 size={16} /> Refazer
                   </button>
                   <button
                     type="button"
-                    onClick={() => aplicarFormatacaoSelecao('**', '**', 'negrito')}
+                    onClick={aplicarNegrito}
                     className="px-4 py-2 rounded-2xl border border-white/10 bg-[#1a2131] text-white text-sm font-semibold flex items-center gap-2 hover:border-cyan-500/40 transition-all"
                   >
                     <Bold size={16} /> Bold
                   </button>
                   <button
                     type="button"
-                    onClick={() => aplicarFormatacaoSelecao('*', '*', 'itálico')}
+                    onClick={aplicarItalico}
                     className="px-4 py-2 rounded-2xl border border-white/10 bg-[#1a2131] text-white text-sm font-semibold flex items-center gap-2 hover:border-cyan-500/40 transition-all"
                   >
                     <Italic size={16} /> Itálico
                   </button>
                   <button
                     type="button"
-                    onClick={() => aplicarFormatacaoSelecao('[texto do link](', ')', 'https://')}
+                    onClick={aplicarLink}
                     className="px-4 py-2 rounded-2xl border border-white/10 bg-[#1a2131] text-white text-sm font-semibold flex items-center gap-2 hover:border-cyan-500/40 transition-all"
                   >
                     <IconeLink size={16} /> Link
                   </button>
                   <button
                     type="button"
-                    onClick={() => aplicarTitulo(2)}
+                    onClick={aplicarTitulo}
                     className="px-4 py-2 rounded-2xl border border-white/10 bg-[#1a2131] text-white text-sm font-semibold flex items-center gap-2 hover:border-cyan-500/40 transition-all"
                   >
                     <Heading2 size={16} /> Título
@@ -637,39 +495,25 @@ export default function PostEditor() {
                 {quantidadePalavras} palavras • {tempoLeitura} min leitura • Suporta Markdown e [code language=&quot;javascript&quot;]...[/code]
               </div>
 
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                <textarea
-                  ref={referenciaTextareaConteudo}
-                  value={content}
-                  onChange={(e) => atualizarConteudo(e.target.value)}
-                  className="w-full px-7 py-6 rounded-[28px] bg-[#1a2131] border border-white/10 text-white focus:border-cyan-500 focus:outline-none transition-all min-h-[520px] text-base leading-8 tracking-[0] font-medium"
-                  placeholder="Escreva seu conteúdo..."
-                  required
-                />
-
-                <div className="min-h-[520px] px-7 py-6 rounded-[28px] bg-[#1a2131] border border-cyan-500/30 overflow-auto">
-                  {content.trim() ? (
-                    <div
-                      className="article-content prose prose-invert prose-cyan max-w-none
-                        prose-headings:font-bold prose-headings:text-white
-                        prose-p:text-white/90 prose-p:leading-relaxed prose-p:mb-6
-                        prose-h1:text-4xl prose-h1:mb-6 prose-h1:mt-8
-                        prose-h2:text-3xl prose-h2:mb-5 prose-h2:mt-7
-                        prose-strong:text-white prose-em:text-cyan-300
-                        prose-ul:space-y-2 prose-li:text-white/85
-                        prose-ol:space-y-2 prose-blockquote:border-cyan-500 prose-blockquote:text-cyan-200"
-                    >
-                      {partesPreview}
-                    </div>
-                  ) : (
-                    <div className="h-full min-h-[440px] flex items-center justify-center text-center text-white/35 text-sm">
-                      A prévia formatada aparece aqui em tempo real.
-                    </div>
-                  )}
-                </div>
-              </div>
+              <div
+                ref={referenciaEditorConteudo}
+                contentEditable
+                suppressContentEditableWarning
+                onInput={atualizarConteudoComEditor}
+                className="w-full px-7 py-6 rounded-[28px] bg-[#1a2131] border border-cyan-500/30 text-white focus:outline-none min-h-[520px] overflow-auto
+                  prose prose-invert prose-cyan max-w-none
+                  prose-headings:font-bold prose-headings:text-white
+                  prose-p:text-white/90 prose-p:leading-relaxed prose-p:mb-6
+                  prose-h1:text-4xl prose-h1:mb-6 prose-h1:mt-8
+                  prose-h2:text-3xl prose-h2:mb-5 prose-h2:mt-7
+                  prose-h3:text-2xl prose-h3:mb-4 prose-h3:mt-6
+                  prose-strong:text-white prose-em:text-cyan-300
+                  prose-ul:space-y-2 prose-li:text-white/85
+                  prose-ol:space-y-2 prose-blockquote:border-cyan-500 prose-blockquote:text-cyan-200"
+                style={{ whiteSpace: 'pre-wrap' }}
+              />
               <p className="text-[11px] text-white/35 ml-2">
-                Dica: para código use o botão Código ou o formato [code language=&quot;js&quot;]...[/code].
+                Dica: a formatação aparece no próprio editor. Para snippet, use o botão Código.
               </p>
               <div className="flex flex-wrap gap-2">
                 <button
