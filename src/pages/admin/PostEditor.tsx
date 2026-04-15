@@ -21,110 +21,12 @@ import {
   List,
   Link as IconeLink,
   ImageUp,
-  Eye,
-  PencilLine,
-  Columns2,
+  Undo2,
+  Redo2,
+  ListOrdered,
+  Highlighter,
 } from 'lucide-react';
 import { Category, Post } from '@/src/types/admin';
-import CodeSnippet from '@/src/components/admin/CodeSnippet';
-
-type ModoEditor = 'escrever' | 'preview' | 'lado-a-lado';
-
-function escaparHtml(texto: string) {
-  return texto
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function aplicarFormatacaoInlineMarkdown(texto: string) {
-  return texto
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/`(.+?)`/g, '<code class="px-1.5 py-0.5 rounded bg-white/10 text-cyan-300">$1</code>')
-    .replace(
-      /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
-      '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-cyan-400 underline">$1</a>',
-    );
-}
-
-// Mantém a mesma lógica de renderização usada no blog para que preview e página final fiquem consistentes.
-function converterMarkdownParaHtml(conteudo: string) {
-  const linhas = conteudo.replace(/\r\n/g, '\n').split('\n');
-  const blocos: string[] = [];
-  let listaAberta = false;
-
-  const fecharListaSeNecessario = () => {
-    if (listaAberta) {
-      blocos.push('</ul>');
-      listaAberta = false;
-    }
-  };
-
-  for (const linhaOriginal of linhas) {
-    const linha = linhaOriginal.trim();
-
-    if (!linha) {
-      fecharListaSeNecessario();
-      continue;
-    }
-
-    if (linha.startsWith('<')) {
-      fecharListaSeNecessario();
-      blocos.push(linhaOriginal);
-      continue;
-    }
-
-    const linhaEscapada = aplicarFormatacaoInlineMarkdown(escaparHtml(linha));
-
-    if (linha.startsWith('#### ')) {
-      fecharListaSeNecessario();
-      blocos.push(`<h4>${linhaEscapada.replace(/^####\s+/, '')}</h4>`);
-      continue;
-    }
-
-    if (linha.startsWith('### ')) {
-      fecharListaSeNecessario();
-      blocos.push(`<h3>${linhaEscapada.replace(/^###\s+/, '')}</h3>`);
-      continue;
-    }
-
-    if (linha.startsWith('## ')) {
-      fecharListaSeNecessario();
-      blocos.push(`<h2>${linhaEscapada.replace(/^##\s+/, '')}</h2>`);
-      continue;
-    }
-
-    if (linha.startsWith('# ')) {
-      fecharListaSeNecessario();
-      blocos.push(`<h1>${linhaEscapada.replace(/^#\s+/, '')}</h1>`);
-      continue;
-    }
-
-    if (linha.startsWith('> ')) {
-      fecharListaSeNecessario();
-      blocos.push(`<blockquote><p>${linhaEscapada.replace(/^>\s+/, '')}</p></blockquote>`);
-      continue;
-    }
-
-    if (linha.startsWith('- ')) {
-      if (!listaAberta) {
-        blocos.push('<ul class="list-disc pl-6">');
-        listaAberta = true;
-      }
-      blocos.push(`<li>${linhaEscapada.replace(/^-\s+/, '')}</li>`);
-      continue;
-    }
-
-    fecharListaSeNecessario();
-    blocos.push(`<p>${linhaEscapada}</p>`);
-  }
-
-  fecharListaSeNecessario();
-  return blocos.join('\n');
-}
 
 export default function PostEditor() {
   const { token } = useAuth();
@@ -143,9 +45,12 @@ export default function PostEditor() {
   const [loading, setLoading] = useState(false);
   const [enviandoImagem, setEnviandoImagem] = useState(false);
   const [slugEditadoManualmente, setSlugEditadoManualmente] = useState(false);
-  const [modoEditor, setModoEditor] = useState<ModoEditor>('lado-a-lado');
+  const [podeDesfazer, setPodeDesfazer] = useState(false);
+  const [podeRefazer, setPodeRefazer] = useState(false);
   const referenciaTextareaConteudo = useRef<HTMLTextAreaElement | null>(null);
   const referenciaInputImagem = useRef<HTMLInputElement | null>(null);
+  const referenciaHistoricoConteudo = useRef<string[]>(['']);
+  const referenciaIndiceHistorico = useRef(0);
 
   const quantidadePalavras = useMemo(
     () => content.trim().split(/\s+/).filter(Boolean).length,
@@ -153,28 +58,42 @@ export default function PostEditor() {
   );
   const tempoLeitura = useMemo(() => Math.max(1, Math.ceil(quantidadePalavras / 200)), [quantidadePalavras]);
 
-  const partesPreview = useMemo(() => {
-    const partes = content.split(/(\[code language=".*?"\].*?\[\/code\])/gs);
-    return partes.map((parte, indice) => {
-      const trechoCodigo = parte.match(/\[code language="(.*?)"\](.*?)\[\/code\]/s);
-      if (trechoCodigo) {
-        const [, linguagem, codigo] = trechoCodigo;
-        return <CodeSnippet key={`codigo-${indice}`} language={linguagem} code={codigo.trim()} />;
-      }
+  const sincronizarBotoesHistorico = () => {
+    const indice = referenciaIndiceHistorico.current;
+    const historico = referenciaHistoricoConteudo.current;
+    setPodeDesfazer(indice > 0);
+    setPodeRefazer(indice < historico.length - 1);
+  };
 
-      if (!parte.trim()) return null;
-      return (
-        <div
-          key={`texto-${indice}`}
-          dangerouslySetInnerHTML={{ __html: converterMarkdownParaHtml(parte) }}
-        />
-      );
-    });
-  }, [content]);
+  const reiniciarHistorico = (conteudoInicial: string) => {
+    referenciaHistoricoConteudo.current = [conteudoInicial];
+    referenciaIndiceHistorico.current = 0;
+    sincronizarBotoesHistorico();
+  };
+
+  const registrarHistoricoConteudo = (novoConteudo: string) => {
+    const historicoAtual = referenciaHistoricoConteudo.current;
+    const indiceAtual = referenciaIndiceHistorico.current;
+
+    if (historicoAtual[indiceAtual] === novoConteudo) return;
+
+    const historicoAjustado = historicoAtual.slice(0, indiceAtual + 1);
+    historicoAjustado.push(novoConteudo);
+
+    const tamanhoMaximoHistorico = 200;
+    if (historicoAjustado.length > tamanhoMaximoHistorico) {
+      historicoAjustado.splice(0, historicoAjustado.length - tamanhoMaximoHistorico);
+    }
+
+    referenciaHistoricoConteudo.current = historicoAjustado;
+    referenciaIndiceHistorico.current = historicoAjustado.length - 1;
+    sincronizarBotoesHistorico();
+  };
 
   useEffect(() => {
     fetchCategories();
     if (isEditing) fetchPost();
+    if (!isEditing) reiniciarHistorico('');
   }, [id]);
 
   const fetchCategories = async () => {
@@ -194,6 +113,7 @@ export default function PostEditor() {
     setSlugEditadoManualmente(true);
     setCategoryId(post.categoryId);
     setContent(post.content);
+    reiniciarHistorico(post.content);
     setSeoTitle(post.seoTitle || '');
     setSeoDescription(post.seoDescription || '');
     setSeoKeywords(post.seoKeywords || '');
@@ -220,8 +140,11 @@ export default function PostEditor() {
     inserirTrechoNoConteudo('\n[code language="javascript"]\n// Seu código aqui\n[/code]\n');
   };
 
-  const atualizarConteudo = (novoConteudo: string) => {
+  const atualizarConteudo = (novoConteudo: string, registrarNoHistorico = true) => {
     setContent(novoConteudo);
+    if (registrarNoHistorico) {
+      registrarHistoricoConteudo(novoConteudo);
+    }
   };
 
   const inserirTrechoNoConteudo = (trecho: string) => {
@@ -309,6 +232,57 @@ export default function PostEditor() {
 
     const novoConteudo = content.slice(0, inicio) + linhasLista + content.slice(fim);
     atualizarConteudo(novoConteudo);
+  };
+
+  const aplicarListaOrdenada = () => {
+    const textarea = referenciaTextareaConteudo.current;
+    if (!textarea) return;
+
+    const inicio = textarea.selectionStart;
+    const fim = textarea.selectionEnd;
+    const trechoSelecionado = content.slice(inicio, fim) || 'Item 1\nItem 2';
+    const linhasListaOrdenada = trechoSelecionado
+      .split('\n')
+      .map((linha, indice) => `${indice + 1}. ${linha}`)
+      .join('\n');
+
+    const novoConteudo = content.slice(0, inicio) + linhasListaOrdenada + content.slice(fim);
+    atualizarConteudo(novoConteudo);
+  };
+
+  const aplicarDestaque = () => {
+    const textarea = referenciaTextareaConteudo.current;
+    if (!textarea) return;
+
+    const inicio = textarea.selectionStart;
+    const fim = textarea.selectionEnd;
+    const trechoSelecionado = content.slice(inicio, fim) || 'Ponto importante';
+    const blocoDestaque = `> 🔥 **${trechoSelecionado}**`;
+    const novoConteudo = content.slice(0, inicio) + blocoDestaque + content.slice(fim);
+    atualizarConteudo(novoConteudo);
+  };
+
+  const desfazerConteudo = () => {
+    const indiceAtual = referenciaIndiceHistorico.current;
+    if (indiceAtual <= 0) return;
+
+    const novoIndice = indiceAtual - 1;
+    referenciaIndiceHistorico.current = novoIndice;
+    const conteudoHistorico = referenciaHistoricoConteudo.current[novoIndice] || '';
+    atualizarConteudo(conteudoHistorico, false);
+    sincronizarBotoesHistorico();
+  };
+
+  const refazerConteudo = () => {
+    const indiceAtual = referenciaIndiceHistorico.current;
+    const historico = referenciaHistoricoConteudo.current;
+    if (indiceAtual >= historico.length - 1) return;
+
+    const novoIndice = indiceAtual + 1;
+    referenciaIndiceHistorico.current = novoIndice;
+    const conteudoHistorico = historico[novoIndice] || '';
+    atualizarConteudo(conteudoHistorico, false);
+    sincronizarBotoesHistorico();
   };
 
   const inserirBlocoRapido = (
@@ -445,242 +419,154 @@ export default function PostEditor() {
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-center justify-between ml-4">
-                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest flex items-center gap-2">
-                  <Layout size={12} /> Conteúdo
-                </label>
-                <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-1">
-                  <button
-                    type="button"
-                    onClick={() => setModoEditor('escrever')}
-                    className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center gap-1.5 ${
-                      modoEditor === 'escrever'
-                        ? 'bg-cyan-500 text-black'
-                        : 'text-white/60 hover:text-cyan-400'
-                    }`}
-                  >
-                    <PencilLine size={12} /> Escrever
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setModoEditor('preview')}
-                    className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center gap-1.5 ${
-                      modoEditor === 'preview'
-                        ? 'bg-cyan-500 text-black'
-                        : 'text-white/60 hover:text-cyan-400'
-                    }`}
-                  >
-                    <Eye size={12} /> Preview
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setModoEditor('lado-a-lado')}
-                    className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center gap-1.5 ${
-                      modoEditor === 'lado-a-lado'
-                        ? 'bg-cyan-500 text-black'
-                        : 'text-white/60 hover:text-cyan-400'
-                    }`}
-                  >
-                    <Columns2 size={12} /> Lado a lado
-                  </button>
-                </div>
+              <div className="ml-2 mr-2">
+                <label className="text-2xl font-bold text-white">Conteúdo</label>
               </div>
+              <div className="rounded-[28px] border border-white/10 bg-gradient-to-b from-white/[0.08] to-white/[0.03] p-4 md:p-5">
+                <input
+                  ref={referenciaInputImagem}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={enviarImagemSelecionada}
+                />
 
-              <div className="flex items-center justify-between gap-4 px-4">
-                <div className="flex items-center flex-wrap gap-2">
-                  <input
-                    ref={referenciaInputImagem}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={enviarImagemSelecionada}
-                  />
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={desfazerConteudo}
+                    disabled={!podeDesfazer}
+                    className="px-4 py-2 rounded-2xl border border-white/10 bg-[#1a2131] text-white/80 text-sm font-semibold flex items-center gap-2 hover:border-cyan-500/40 hover:text-cyan-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Undo2 size={16} /> Desfazer
+                  </button>
+                  <button
+                    type="button"
+                    onClick={refazerConteudo}
+                    disabled={!podeRefazer}
+                    className="px-4 py-2 rounded-2xl border border-white/10 bg-[#1a2131] text-white/80 text-sm font-semibold flex items-center gap-2 hover:border-cyan-500/40 hover:text-cyan-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Redo2 size={16} /> Refazer
+                  </button>
                   <button
                     type="button"
                     onClick={() => aplicarFormatacaoSelecao('**', '**', 'negrito')}
-                    className="p-2 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:text-cyan-400 hover:border-cyan-500/30 transition-all"
-                    title="Negrito"
+                    className="px-4 py-2 rounded-2xl border border-white/10 bg-[#1a2131] text-white text-sm font-semibold flex items-center gap-2 hover:border-cyan-500/40 transition-all"
                   >
-                    <Bold size={14} />
+                    <Bold size={16} /> Bold
                   </button>
                   <button
                     type="button"
                     onClick={() => aplicarFormatacaoSelecao('*', '*', 'itálico')}
-                    className="p-2 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:text-cyan-400 hover:border-cyan-500/30 transition-all"
-                    title="Itálico"
+                    className="px-4 py-2 rounded-2xl border border-white/10 bg-[#1a2131] text-white text-sm font-semibold flex items-center gap-2 hover:border-cyan-500/40 transition-all"
                   >
-                    <Italic size={14} />
+                    <Italic size={16} /> Itálico
                   </button>
                   <button
                     type="button"
                     onClick={() => aplicarFormatacaoSelecao('[texto do link](', ')', 'https://')}
-                    className="p-2 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:text-cyan-400 hover:border-cyan-500/30 transition-all"
-                    title="Link"
+                    className="px-4 py-2 rounded-2xl border border-white/10 bg-[#1a2131] text-white text-sm font-semibold flex items-center gap-2 hover:border-cyan-500/40 transition-all"
                   >
-                    <IconeLink size={14} />
+                    <IconeLink size={16} /> Link
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => aplicarTitulo(2)}
+                    className="px-4 py-2 rounded-2xl border border-white/10 bg-[#1a2131] text-white text-sm font-semibold flex items-center gap-2 hover:border-cyan-500/40 transition-all"
+                  >
+                    <Heading2 size={16} /> Título
+                  </button>
+                  <button
+                    type="button"
+                    onClick={aplicarLista}
+                    className="px-4 py-2 rounded-2xl border border-white/10 bg-[#1a2131] text-white text-sm font-semibold flex items-center gap-2 hover:border-cyan-500/40 transition-all"
+                  >
+                    <List size={16} /> Lista
+                  </button>
+                  <button
+                    type="button"
+                    onClick={aplicarListaOrdenada}
+                    className="px-4 py-2 rounded-2xl border border-white/10 bg-[#1a2131] text-white text-sm font-semibold flex items-center gap-2 hover:border-cyan-500/40 transition-all"
+                  >
+                    <ListOrdered size={16} /> Ordenada
+                  </button>
+                  <button
+                    type="button"
+                    onClick={aplicarCitacao}
+                    className="px-4 py-2 rounded-2xl border border-white/10 bg-[#1a2131] text-white text-sm font-semibold flex items-center gap-2 hover:border-cyan-500/40 transition-all"
+                  >
+                    <Quote size={16} /> Citação
+                  </button>
+                  <button
+                    type="button"
+                    onClick={aplicarDestaque}
+                    className="px-4 py-2 rounded-2xl border border-white/10 bg-[#1a2131] text-white text-sm font-semibold flex items-center gap-2 hover:border-cyan-500/40 transition-all"
+                  >
+                    <Highlighter size={16} /> Destaque
+                  </button>
+                  <button
+                    type="button"
+                    onClick={insertCodeSnippet}
+                    className="px-4 py-2 rounded-2xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 text-sm font-semibold flex items-center gap-2 hover:bg-cyan-500 hover:text-black transition-all"
+                  >
+                    <Code size={16} /> Código
                   </button>
                   <button
                     type="button"
                     onClick={abrirSeletorImagem}
                     disabled={enviandoImagem}
-                    className="p-2 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:text-cyan-400 hover:border-cyan-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    title={enviandoImagem ? 'Enviando imagem...' : 'Enviar imagem'}
+                    className="px-4 py-2 rounded-2xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 text-sm font-semibold flex items-center gap-2 hover:bg-cyan-500 hover:text-black transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <ImageUp size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={aplicarCitacao}
-                    className="p-2 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:text-cyan-400 hover:border-cyan-500/30 transition-all"
-                    title="Citação"
-                  >
-                    <Quote size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={aplicarLista}
-                    className="p-2 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:text-cyan-400 hover:border-cyan-500/30 transition-all"
-                    title="Lista"
-                  >
-                    <List size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => aplicarTitulo(1)}
-                    className="p-2 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:text-cyan-400 hover:border-cyan-500/30 transition-all"
-                    title="Título H1"
-                  >
-                    <Heading1 size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => aplicarTitulo(2)}
-                    className="p-2 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:text-cyan-400 hover:border-cyan-500/30 transition-all"
-                    title="Título H2"
-                  >
-                    <Heading2 size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => aplicarTitulo(3)}
-                    className="p-2 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:text-cyan-400 hover:border-cyan-500/30 transition-all"
-                    title="Título H3"
-                  >
-                    <Heading3 size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => aplicarTitulo(4)}
-                    className="p-2 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:text-cyan-400 hover:border-cyan-500/30 transition-all"
-                    title="Título H4"
-                  >
-                    <Heading4 size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={insertCodeSnippet}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-[10px] font-black uppercase tracking-widest hover:bg-cyan-500 hover:text-black transition-all"
-                  >
-                    <Code size={12} /> Inserir Snippet
-                  </button>
-                </div>
-                <div className="text-[10px] font-bold uppercase tracking-widest text-white/40">
-                  {quantidadePalavras} palavras • {tempoLeitura} min leitura
-                </div>
-              </div>
-
-              <div className="px-4 py-3 rounded-2xl border border-cyan-500/20 bg-cyan-500/5">
-                <p className="text-[11px] text-cyan-300/80 font-medium">
-                  Blocos rápidos para acelerar a escrita:
-                </p>
-                <div className="mt-2 flex items-center flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => inserirBlocoRapido('titulo')}
-                    className="px-3 py-1.5 text-[10px] rounded-lg bg-white/5 border border-white/10 text-white/70 hover:text-cyan-400 hover:border-cyan-500/40 transition-all"
-                  >
-                    + Título
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => inserirBlocoRapido('subtitulo')}
-                    className="px-3 py-1.5 text-[10px] rounded-lg bg-white/5 border border-white/10 text-white/70 hover:text-cyan-400 hover:border-cyan-500/40 transition-all"
-                  >
-                    + Subtítulo
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => inserirBlocoRapido('lista')}
-                    className="px-3 py-1.5 text-[10px] rounded-lg bg-white/5 border border-white/10 text-white/70 hover:text-cyan-400 hover:border-cyan-500/40 transition-all"
-                  >
-                    + Lista
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => inserirBlocoRapido('citacao')}
-                    className="px-3 py-1.5 text-[10px] rounded-lg bg-white/5 border border-white/10 text-white/70 hover:text-cyan-400 hover:border-cyan-500/40 transition-all"
-                  >
-                    + Citação
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => inserirBlocoRapido('codigo')}
-                    className="px-3 py-1.5 text-[10px] rounded-lg bg-white/5 border border-white/10 text-white/70 hover:text-cyan-400 hover:border-cyan-500/40 transition-all"
-                  >
-                    + Código
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => inserirBlocoRapido('divisor')}
-                    className="px-3 py-1.5 text-[10px] rounded-lg bg-white/5 border border-white/10 text-white/70 hover:text-cyan-400 hover:border-cyan-500/40 transition-all"
-                  >
-                    + Divisor
+                    <ImageUp size={16} /> {enviandoImagem ? 'Enviando...' : 'Imagem'}
                   </button>
                 </div>
               </div>
 
-              <p className="text-[11px] text-white/35 ml-4">
-                Use os ícones para formatar e o modo Preview para validar o visual final do post.
+              <div className="text-[11px] text-white/45 ml-2">
+                {quantidadePalavras} palavras • {tempoLeitura} min leitura • Suporta Markdown e [code language=&quot;javascript&quot;]...[/code]
+              </div>
+
+              <textarea
+                ref={referenciaTextareaConteudo}
+                value={content}
+                onChange={(e) => atualizarConteudo(e.target.value)}
+                className="w-full px-7 py-6 rounded-[28px] bg-[#1a2131] border border-white/10 text-white focus:border-cyan-500 focus:outline-none transition-all min-h-[520px] text-[34px] sm:text-[30px] leading-[1.85] tracking-[-0.01em] font-medium"
+                style={{ fontSize: 'clamp(22px, 2.2vw, 36px)' }}
+                placeholder="Escreva seu conteúdo..."
+                required
+              />
+              <p className="text-[11px] text-white/35 ml-2">
+                Dica: para código use o botão Código ou o formato [code language=&quot;js&quot;]...[/code].
               </p>
-
-              <div
-                className={`grid gap-4 ${modoEditor === 'lado-a-lado' ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1'}`}
-              >
-                {modoEditor !== 'preview' && (
-                  <textarea
-                    ref={referenciaTextareaConteudo}
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    className="w-full px-6 py-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:border-cyan-500 focus:outline-none transition-all min-h-[460px] font-mono text-sm leading-relaxed"
-                    placeholder="Escreva seu post aqui... Você pode usar Markdown (#, ##, **, *, >, -) e [code language='js']...[/code]."
-                    required
-                  />
-                )}
-
-                {modoEditor !== 'escrever' && (
-                  <div className="min-h-[460px] px-6 py-5 rounded-2xl bg-white/[0.03] border border-cyan-500/20 overflow-auto">
-                    {content.trim() ? (
-                      <div
-                        className="article-content prose prose-invert prose-cyan max-w-none
-                          prose-headings:font-bold prose-headings:text-white
-                          prose-p:text-white/90 prose-p:leading-relaxed prose-p:mb-6
-                          prose-h1:text-4xl prose-h1:mb-6 prose-h1:mt-10
-                          prose-h2:text-3xl prose-h2:mb-5 prose-h2:mt-9
-                          prose-h3:text-2xl prose-h3:mb-4 prose-h3:mt-8
-                          prose-h4:text-xl prose-h4:mb-4 prose-h4:mt-7
-                          prose-strong:text-white prose-em:text-cyan-300
-                          prose-ul:space-y-2 prose-li:text-white/85
-                          prose-blockquote:border-cyan-500 prose-blockquote:text-cyan-200"
-                      >
-                        {partesPreview}
-                      </div>
-                    ) : (
-                      <div className="h-full min-h-[420px] flex items-center justify-center text-center text-white/35 text-sm">
-                        Comece a escrever para visualizar o resultado final aqui.
-                      </div>
-                    )}
-                  </div>
-                )}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => inserirBlocoRapido('titulo')}
+                  className="px-3 py-1.5 text-[10px] rounded-lg bg-white/5 border border-white/10 text-white/70 hover:text-cyan-400 hover:border-cyan-500/40 transition-all"
+                >
+                  + Título
+                </button>
+                <button
+                  type="button"
+                  onClick={() => inserirBlocoRapido('subtitulo')}
+                  className="px-3 py-1.5 text-[10px] rounded-lg bg-white/5 border border-white/10 text-white/70 hover:text-cyan-400 hover:border-cyan-500/40 transition-all"
+                >
+                  + Subtítulo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => inserirBlocoRapido('lista')}
+                  className="px-3 py-1.5 text-[10px] rounded-lg bg-white/5 border border-white/10 text-white/70 hover:text-cyan-400 hover:border-cyan-500/40 transition-all"
+                >
+                  + Lista
+                </button>
+                <button
+                  type="button"
+                  onClick={() => inserirBlocoRapido('citacao')}
+                  className="px-3 py-1.5 text-[10px] rounded-lg bg-white/5 border border-white/10 text-white/70 hover:text-cyan-400 hover:border-cyan-500/40 transition-all"
+                >
+                  + Citação
+                </button>
               </div>
             </div>
           </div>
