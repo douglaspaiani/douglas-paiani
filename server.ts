@@ -234,9 +234,32 @@ function obterExtensaoPorMimeType(mimeType: string) {
     "image/gif": "gif",
     "image/avif": "avif",
     "image/svg+xml": "svg",
+    "image/heic": "heic",
+    "image/heif": "heif",
   };
 
   return mapaExtensoes[mimeType] || "bin";
+}
+
+function processarUploadImagem(req: Request, res: Response, next: NextFunction) {
+  // Centraliza o tratamento do multer para garantir respostas JSON em erros de upload.
+  uploadEmMemoria.single("imagem")(req, res, (erroUpload: unknown) => {
+    if (!erroUpload) {
+      next();
+      return;
+    }
+
+    if (erroUpload instanceof multer.MulterError) {
+      if (erroUpload.code === "LIMIT_FILE_SIZE") {
+        res.status(400).json({ error: "A imagem excede o limite de 10MB." });
+        return;
+      }
+      res.status(400).json({ error: "Erro ao processar arquivo enviado." });
+      return;
+    }
+
+    res.status(500).json({ error: "Erro inesperado ao processar upload." });
+  });
 }
 
 function montarUrlPublicaImagem(configuracao: ConfiguracaoBackblaze, caminhoArquivo: string) {
@@ -936,7 +959,7 @@ app.delete("/api/posts/:id", autenticarRequisicao, async (req, res) => {
 app.post(
   "/api/admin/upload-imagem",
   autenticarRequisicao,
-  uploadEmMemoria.single("imagem"),
+  processarUploadImagem,
   async (req, res) => {
     try {
       const arquivo = req.file;

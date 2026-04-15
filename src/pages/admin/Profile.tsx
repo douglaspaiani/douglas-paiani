@@ -22,6 +22,37 @@ export default function Profile() {
   const [error, setError] = useState('');
   const referenciaInputArquivo = useRef<HTMLInputElement | null>(null);
 
+  async function lerJsonDeFormaSegura(resposta: Response) {
+    const textoResposta = await resposta.text();
+    if (!textoResposta) return {};
+
+    try {
+      return JSON.parse(textoResposta);
+    } catch {
+      return {};
+    }
+  }
+
+  async function salvarFotoPerfilNoServidor(urlFotoPerfil: string) {
+    if (!token) {
+      throw new Error('Sessão expirada. Faça login novamente.');
+    }
+
+    const resposta = await fetch('/api/auth/profile', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ fotoPerfil: urlFotoPerfil }),
+    });
+
+    const dadosResposta = await lerJsonDeFormaSegura(resposta);
+    if (!resposta.ok) {
+      throw new Error(dadosResposta.error || 'Erro ao salvar foto de perfil');
+    }
+  }
+
   useEffect(() => {
     if (user) {
       setName(user.name);
@@ -100,13 +131,18 @@ export default function Profile() {
   const enviarFotoPerfil = async (evento: React.ChangeEvent<HTMLInputElement>) => {
     const arquivoImagem = evento.target.files?.[0];
     evento.target.value = '';
-    if (!arquivoImagem || !token) return;
+    if (!arquivoImagem) return;
+    if (!token) {
+      setError('Sessão expirada. Faça login novamente.');
+      return;
+    }
 
     const formulario = new FormData();
     formulario.append('imagem', arquivoImagem);
 
     setEnviandoFotoPerfil(true);
     setError('');
+    setSuccess(false);
 
     try {
       const resposta = await fetch('/api/admin/upload-imagem', {
@@ -114,10 +150,13 @@ export default function Profile() {
         headers: { Authorization: `Bearer ${token}` },
         body: formulario,
       });
-      const dadosResposta = await resposta.json();
+      const dadosResposta = await lerJsonDeFormaSegura(resposta);
       if (!resposta.ok) throw new Error(dadosResposta.error || 'Erro ao enviar foto de perfil');
+      if (!dadosResposta.url) throw new Error('Upload concluído sem URL de retorno');
 
+      await salvarFotoPerfilNoServidor(dadosResposta.url);
       setFotoPerfil(dadosResposta.url);
+      setSuccess(true);
     } catch (erro) {
       setError(erro instanceof Error ? erro.message : 'Erro ao enviar foto de perfil');
     } finally {
@@ -172,7 +211,7 @@ export default function Profile() {
 
             <div className="space-y-4">
               <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest ml-4 flex items-center gap-2">
-                <IconeImagem size={12} /> Foto de Perfil (URL)
+                <IconeImagem size={12} /> Foto de Perfil
               </label>
               <input
                 ref={referenciaInputArquivo}
@@ -181,20 +220,27 @@ export default function Profile() {
                 onChange={enviarFotoPerfil}
                 className="hidden"
               />
-              <input
-                type="url"
-                value={fotoPerfil}
-                onChange={(e) => setFotoPerfil(e.target.value)}
-                className="w-full px-6 py-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:border-cyan-500 focus:outline-none transition-all"
-                placeholder="https://..."
-              />
+              {fotoPerfil ? (
+                <div className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-4">
+                  <img
+                    src={fotoPerfil}
+                    alt="Pré-visualização da foto de perfil"
+                    className="w-14 h-14 rounded-full object-cover border border-white/10"
+                  />
+                  <p className="text-sm text-white/70">Foto atual carregada.</p>
+                </div>
+              ) : (
+                <div className="w-full px-6 py-4 rounded-2xl bg-white/5 border border-white/10 text-white/50 text-sm">
+                  Nenhuma foto enviada ainda.
+                </div>
+              )}
               <button
                 type="button"
                 onClick={abrirSeletorFotoPerfil}
                 disabled={enviandoFotoPerfil}
                 className="px-4 py-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold uppercase tracking-widest hover:bg-cyan-500 hover:text-black transition-all disabled:opacity-50"
               >
-                {enviandoFotoPerfil ? 'Enviando foto...' : 'Upload da foto'}
+                {enviandoFotoPerfil ? 'Enviando foto...' : 'Enviar foto'}
               </button>
             </div>
 

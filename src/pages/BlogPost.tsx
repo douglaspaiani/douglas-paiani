@@ -505,6 +505,22 @@ export default function BlogPost() {
               </div>
             </div>
 
+            <a
+              href={postagemAtual.author.instagramUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group block p-8 rounded-[32px] bg-gradient-to-br from-cyan-500/15 via-cyan-500/5 to-transparent border border-cyan-500/30 hover:border-cyan-400 transition-all"
+            >
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-300/80 mb-3">Instagram</p>
+              <h3 className="text-white font-black text-xl leading-tight">
+                Acompanhe meu perfil no Instagram
+              </h3>
+              <span className="mt-5 inline-flex items-center gap-2 text-cyan-300 text-xs font-bold uppercase tracking-widest group-hover:text-cyan-200 transition-colors">
+                <Instagram size={14} />
+                Abrir perfil
+              </span>
+            </a>
+
             {postagensRelacionadas.length > 0 && (
               <div className="space-y-8">
                 <h3 className="text-white font-bold text-sm uppercase tracking-widest flex items-center gap-2">
