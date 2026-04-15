@@ -89,6 +89,17 @@ interface PostagemInicio {
   readTime: string;
 }
 
+interface PerfilAutorPublicoInicio {
+  id: string;
+  name: string;
+  cargo: string;
+  bio: string;
+  fotoPerfil: string;
+  instagramUrl: string;
+  linkedinUrl: string;
+  githubUrl: string;
+}
+
 function removerMarcacoesCodigoInicio(texto: string) {
   return texto.replace(/\[code language=".*?"\](.*?)\[\/code\]/gs, "$1");
 }
@@ -247,6 +258,7 @@ const TechCard: React.FC<{ tech: any, i: number }> = ({ tech, i }) => {
 export default function Inicio() {
   const [postagensApiInicio, setPostagensApiInicio] = useState<Post[]>([]);
   const [categoriasApiInicio, setCategoriasApiInicio] = useState<Category[]>([]);
+  const [perfilAutorInicio, setPerfilAutorInicio] = useState<PerfilAutorPublicoInicio | null>(null);
 
   useEffect(() => {
     const chaveControle = "controle_acesso_site_principal";
@@ -263,13 +275,15 @@ export default function Inicio() {
   useEffect(() => {
     const carregarPostagensInicio = async () => {
       try {
-        const [respostaPostagens, respostaCategorias] = await Promise.all([
+        const [respostaPostagens, respostaCategorias, respostaAutor] = await Promise.all([
           fetch("/api/posts"),
           fetch("/api/categories"),
+          fetch("/api/publico/autor"),
         ]);
 
         if (respostaPostagens.ok) setPostagensApiInicio(await respostaPostagens.json());
         if (respostaCategorias.ok) setCategoriasApiInicio(await respostaCategorias.json());
+        if (respostaAutor.ok) setPerfilAutorInicio(await respostaAutor.json());
       } catch (erro) {
         console.error("Erro ao carregar postagens da home:", erro);
       }
@@ -293,13 +307,16 @@ export default function Inicio() {
           month: "short",
           year: "numeric",
         }),
-        author: { name: "Douglas Paiani", avatar: "https://picsum.photos/seed/douglas/100/100" },
+        author: {
+          name: perfilAutorInicio?.name || "Douglas Paiani",
+          avatar: perfilAutorInicio?.fotoPerfil || "https://picsum.photos/seed/douglas/100/100",
+        },
         category: nomeCategoria,
         image: postagem.imagemDestacada || `https://picsum.photos/seed/${postagem.slug}/1200/600`,
         readTime: calcularTempoLeituraInicio(postagem.content),
       };
     });
-  }, [postagensApiInicio, categoriasApiInicio]);
+  }, [postagensApiInicio, categoriasApiInicio, perfilAutorInicio]);
 
   return (
     <main className="bg-black min-h-screen">
@@ -693,8 +710,13 @@ export default function Inicio() {
                     </p>
                     <div className="pt-6 border-t border-white/5 flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <img src={post.author.avatar} alt={post.author.name} className="w-6 h-6 rounded-full border border-white/10" />
-                        <span className="text-white/60 text-[10px] font-medium">{post.author.name}</span>
+                        <img
+                          src={post.author.avatar}
+                          alt={post.author.name}
+                          className="w-8 h-8 rounded-full border border-white/10 object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                        <span className="text-white/60 text-xs font-medium">{post.author.name}</span>
                       </div>
                       <ArrowRight size={16} className="text-cyan-400 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                     </div>

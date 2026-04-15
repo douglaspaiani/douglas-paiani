@@ -40,6 +40,17 @@ interface PostagemRender {
   createdAt: string;
 }
 
+interface PerfilAutorPublicoBlog {
+  id: string;
+  name: string;
+  cargo: string;
+  bio: string;
+  fotoPerfil: string;
+  instagramUrl: string;
+  linkedinUrl: string;
+  githubUrl: string;
+}
+
 function removerMarcacoesCodigo(texto: string) {
   return texto.replace(/\[code language=".*?"\](.*?)\[\/code\]/gs, "$1");
 }
@@ -83,17 +94,20 @@ export default function Blog() {
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [postagensApi, setPostagensApi] = useState<Post[]>([]);
   const [categoriasApi, setCategoriasApi] = useState<Category[]>([]);
+  const [perfilAutorBlog, setPerfilAutorBlog] = useState<PerfilAutorPublicoBlog | null>(null);
 
   useEffect(() => {
     const carregarDados = async () => {
       try {
-        const [respostaPostagens, respostaCategorias] = await Promise.all([
+        const [respostaPostagens, respostaCategorias, respostaAutor] = await Promise.all([
           fetch("/api/posts"),
           fetch("/api/categories"),
+          fetch("/api/publico/autor"),
         ]);
 
         if (respostaPostagens.ok) setPostagensApi(await respostaPostagens.json());
         if (respostaCategorias.ok) setCategoriasApi(await respostaCategorias.json());
+        if (respostaAutor.ok) setPerfilAutorBlog(await respostaAutor.json());
       } catch (erro) {
         console.error("Erro ao carregar dados do blog:", erro);
       }
@@ -130,7 +144,10 @@ export default function Blog() {
           month: "short",
           year: "numeric",
         }),
-        author: { name: "Douglas Paiani", avatar: "https://picsum.photos/seed/douglas/100/100" },
+        author: {
+          name: perfilAutorBlog?.name || "Douglas Paiani",
+          avatar: perfilAutorBlog?.fotoPerfil || "https://picsum.photos/seed/douglas/100/100",
+        },
         category: nomeCategoria,
         tags,
         image: postagem.imagemDestacada || `https://picsum.photos/seed/${postagem.slug}/1200/600`,
@@ -138,7 +155,7 @@ export default function Blog() {
         createdAt: postagem.createdAt,
       };
     });
-  }, [postagensApi, categoriasApi]);
+  }, [postagensApi, categoriasApi, perfilAutorBlog]);
 
   const postagensFiltradas = useMemo(() => {
     return todasPostagens.filter((postagem) => {
