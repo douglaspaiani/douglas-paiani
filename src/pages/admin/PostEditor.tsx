@@ -131,15 +131,18 @@ export default function PostEditor() {
   const [slug, setSlug] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [content, setContent] = useState('');
+  const [imagemDestacada, setImagemDestacada] = useState('');
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDescription, setSeoDescription] = useState('');
   const [seoKeywords, setSeoKeywords] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [enviandoImagem, setEnviandoImagem] = useState(false);
+  const [enviandoImagemDestacada, setEnviandoImagemDestacada] = useState(false);
   const [slugEditadoManualmente, setSlugEditadoManualmente] = useState(false);
   const referenciaEditorConteudo = useRef<HTMLDivElement | null>(null);
   const referenciaInputImagem = useRef<HTMLInputElement | null>(null);
+  const referenciaInputImagemDestacada = useRef<HTMLInputElement | null>(null);
 
   const quantidadePalavras = useMemo(
     () => content.trim().split(/\s+/).filter(Boolean).length,
@@ -195,10 +198,22 @@ export default function PostEditor() {
     setSlugEditadoManualmente(true);
     setCategoryId(post.categoryId);
     setContent(post.content);
+    setImagemDestacada(post.imagemDestacada || '');
     setSeoTitle(post.seoTitle || '');
     setSeoDescription(post.seoDescription || '');
     setSeoKeywords(post.seoKeywords || '');
   };
+
+  async function lerJsonDeFormaSegura(resposta: Response) {
+    const textoResposta = await resposta.text();
+    if (!textoResposta) return {};
+
+    try {
+      return JSON.parse(textoResposta);
+    } catch {
+      return {};
+    }
+  }
 
   const gerarSlug = (texto: string) =>
     texto
@@ -311,6 +326,49 @@ export default function PostEditor() {
     }
   };
 
+  const abrirSeletorImagemDestacada = () => {
+    referenciaInputImagemDestacada.current?.click();
+  };
+
+  const enviarImagemDestacadaSelecionada = async (evento: React.ChangeEvent<HTMLInputElement>) => {
+    const arquivoImagem = evento.target.files?.[0];
+    evento.target.value = '';
+
+    if (!arquivoImagem) return;
+    if (!token) {
+      alert('Você precisa estar autenticado para enviar imagens.');
+      return;
+    }
+
+    const formulario = new FormData();
+    formulario.append('imagem', arquivoImagem);
+
+    setEnviandoImagemDestacada(true);
+
+    try {
+      const resposta = await fetch('/api/admin/upload-imagem', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formulario,
+      });
+
+      const dadosResposta = await lerJsonDeFormaSegura(resposta);
+      if (!resposta.ok) {
+        throw new Error(dadosResposta.error || 'Falha no upload da imagem destacada');
+      }
+      if (!dadosResposta.url) {
+        throw new Error('Upload concluído sem URL de retorno');
+      }
+
+      setImagemDestacada(dadosResposta.url);
+    } catch (erro) {
+      console.error(erro);
+      alert(erro instanceof Error ? erro.message : 'Erro ao enviar imagem destacada');
+    } finally {
+      setEnviandoImagemDestacada(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -320,6 +378,7 @@ export default function PostEditor() {
       slug: slug || title.toLowerCase().replace(/ /g, '-'),
       categoryId,
       content,
+      imagemDestacada,
       seoTitle,
       seoDescription,
       seoKeywords,
@@ -542,6 +601,54 @@ export default function PostEditor() {
 
         <div className="lg:col-span-1 space-y-8">
           <div className="bg-[#0a0a0a] border border-white/5 rounded-[32px] p-8 space-y-8">
+            <div className="space-y-4">
+              <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest ml-4 flex items-center gap-2">
+                <ImageUp size={12} /> Imagem Destacada
+              </label>
+
+              <input
+                ref={referenciaInputImagemDestacada}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={enviarImagemDestacadaSelecionada}
+              />
+
+              {imagemDestacada ? (
+                <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
+                  <img
+                    src={imagemDestacada}
+                    alt="Pré-visualização da imagem destacada"
+                    className="w-full aspect-video object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="w-full px-6 py-4 rounded-2xl bg-white/5 border border-white/10 text-white/40 text-xs">
+                  Nenhuma imagem destacada definida.
+                </div>
+              )}
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={abrirSeletorImagemDestacada}
+                  disabled={enviandoImagemDestacada}
+                  className="px-4 py-2 rounded-xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 text-xs font-bold uppercase tracking-widest hover:bg-cyan-500 hover:text-black transition-all disabled:opacity-50"
+                >
+                  {enviandoImagemDestacada ? 'Enviando...' : imagemDestacada ? 'Trocar Imagem' : 'Upload Imagem'}
+                </button>
+                {imagemDestacada && (
+                  <button
+                    type="button"
+                    onClick={() => setImagemDestacada('')}
+                    className="px-4 py-2 rounded-xl border border-red-500/30 bg-red-500/10 text-red-300 text-xs font-bold uppercase tracking-widest hover:bg-red-500 hover:text-black transition-all"
+                  >
+                    Remover
+                  </button>
+                )}
+              </div>
+            </div>
+
             <div className="space-y-4">
               <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest ml-4 flex items-center gap-2">
                 <Tag size={12} /> Categoria

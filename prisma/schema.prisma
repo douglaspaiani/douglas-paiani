@@ -41,6 +41,7 @@ model Post {
   title          String
   slug           String    @unique
   content        String    @db.Text
+  imagemDestacada String?  @db.VarChar(500)
   categoryId     String
   authorId       String
   seoTitle       String?

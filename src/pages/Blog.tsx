@@ -133,7 +133,7 @@ export default function Blog() {
         author: { name: "Douglas Paiani", avatar: "https://picsum.photos/seed/douglas/100/100" },
         category: nomeCategoria,
         tags,
-        image: `https://picsum.photos/seed/${postagem.slug}/1200/600`,
+        image: postagem.imagemDestacada || `https://picsum.photos/seed/${postagem.slug}/1200/600`,
         readTime: calcularTempoLeitura(postagem.content),
         createdAt: postagem.createdAt,
       };

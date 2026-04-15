@@ -222,7 +222,7 @@ function mapearPostagem(postagem: Post, categorias: Category[], perfilAutor?: Pe
     author: autor,
     category: categoriaNome,
     tags: extrairTags(postagem.seoKeywords),
-    image: `https://picsum.photos/seed/${postagem.slug}/1200/600`,
+    image: postagem.imagemDestacada || `https://picsum.photos/seed/${postagem.slug}/1200/600`,
     readTime: calcularTempoLeitura(postagem.content),
     seoTitle: postagem.seoTitle || undefined,
     seoDescription: postagem.seoDescription || undefined,
@@ -344,7 +344,7 @@ export default function BlogPost() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(6,182,212,0.1),transparent_50%)]" />
       </div>
 
-      <div className="max-w-4xl mx-auto relative z-10">
+      <div className="max-w-7xl mx-auto relative z-10">
         <Link
           to="/blog"
           className="inline-flex items-center gap-2 text-white/40 hover:text-cyan-400 transition-all mb-12 group text-xs font-bold uppercase tracking-widest"

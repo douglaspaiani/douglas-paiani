@@ -21,6 +21,7 @@ export interface Post {
   title: string;
   slug: string;
   content: string; // HTML or Markdown
+  imagemDestacada?: string | null;
   categoryId: string;
   createdAt: string;
   updatedAt?: string;

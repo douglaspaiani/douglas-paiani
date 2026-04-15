@@ -11,11 +11,15 @@ export default function Posts() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [acessosPorSlug, setAcessosPorSlug] = useState<Record<string, number>>({});
 
   useEffect(() => {
     fetchPosts();
     fetchCategories();
-  }, []);
+    if (token) {
+      fetchAcessosPostagens();
+    }
+  }, [token]);
 
   const fetchPosts = async () => {
     const res = await fetch('/api/posts');
@@ -27,6 +31,31 @@ export default function Posts() {
     const res = await fetch('/api/categories');
     const data = await res.json();
     setCategories(data);
+  };
+
+  const fetchAcessosPostagens = async () => {
+    if (!token) return;
+
+    try {
+      const resposta = await fetch('/api/admin/analytics/acessos', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!resposta.ok) return;
+
+      const dados = await resposta.json();
+      const mapaAcessos = (dados.postagens || []).reduce(
+        (acumulador: Record<string, number>, item: { slug: string; total: number }) => {
+          acumulador[item.slug] = item.total;
+          return acumulador;
+        },
+        {},
+      );
+
+      setAcessosPorSlug(mapaAcessos);
+    } catch (erro) {
+      console.error('Erro ao carregar acessos das postagens:', erro);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -104,6 +133,9 @@ export default function Posts() {
                       </span>
                       <span className="flex items-center gap-1.5 text-[10px] text-cyan-500/60 font-bold uppercase tracking-widest">
                         <Tag size={12} /> {categories.find(c => c.id === post.categoryId)?.name || 'Sem Categoria'}
+                      </span>
+                      <span className="flex items-center gap-1.5 text-[10px] text-emerald-400/80 font-bold uppercase tracking-widest">
+                        <Eye size={12} /> {acessosPorSlug[post.slug] ?? 0} visualizações
                       </span>
                     </div>
                   </div>
