@@ -500,16 +500,7 @@ export default function PostEditor() {
                 contentEditable
                 suppressContentEditableWarning
                 onInput={atualizarConteudoComEditor}
-                className="w-full px-7 py-6 rounded-[28px] bg-[#1a2131] border border-cyan-500/30 text-white focus:outline-none min-h-[520px] overflow-auto
-                  prose prose-invert prose-cyan max-w-none
-                  prose-headings:font-bold prose-headings:text-white
-                  prose-p:text-white/90 prose-p:leading-relaxed prose-p:mb-6
-                  prose-h1:text-4xl prose-h1:mb-6 prose-h1:mt-8
-                  prose-h2:text-3xl prose-h2:mb-5 prose-h2:mt-7
-                  prose-h3:text-2xl prose-h3:mb-4 prose-h3:mt-6
-                  prose-strong:text-white prose-em:text-cyan-300
-                  prose-ul:space-y-2 prose-li:text-white/85
-                  prose-ol:space-y-2 prose-blockquote:border-cyan-500 prose-blockquote:text-cyan-200"
+                className="w-full px-7 py-6 rounded-[28px] bg-[#1a2131] border border-cyan-500/30 text-white focus:outline-none min-h-[520px] overflow-auto conteudo-blog-formatado"
                 style={{ whiteSpace: 'pre-wrap' }}
               />
               <p className="text-[11px] text-white/35 ml-2">

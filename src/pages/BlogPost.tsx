@@ -362,18 +362,7 @@ export default function BlogPost() {
         <div className="grid lg:grid-cols-12 gap-16">
           <div className="lg:col-span-8">
             <div
-              className="article-content prose prose-invert prose-cyan max-w-none
-                prose-headings:font-black prose-headings:tracking-tighter prose-headings:text-white
-                prose-h1:text-4xl prose-h1:md:text-5xl prose-h1:mb-6
-                prose-h2:text-3xl prose-h2:md:text-4xl prose-h2:mb-5
-                prose-h3:text-2xl prose-h3:md:text-3xl prose-h3:mb-4
-                prose-h4:text-xl prose-h4:md:text-2xl prose-h4:mb-3
-                prose-p:text-white/60 prose-p:leading-relaxed prose-p:font-light prose-p:text-lg
-                prose-strong:text-cyan-400 prose-strong:font-bold
-                prose-em:text-white/80 prose-em:italic
-                prose-ul:text-white/50 prose-li:marker:text-cyan-400
-                prose-blockquote:border-l-cyan-500 prose-blockquote:bg-white/5 prose-blockquote:p-8 prose-blockquote:rounded-2xl prose-blockquote:italic prose-blockquote:text-white/80
-                prose-img:rounded-3xl prose-img:border prose-img:border-white/10"
+              className="article-content conteudo-blog-formatado max-w-none"
             >
               {renderizarConteudo(postagemAtual.content)}
             </div>

@@ -35,6 +35,105 @@
   }
 }
 
+@layer components {
+  .conteudo-blog-formatado {
+    color: rgba(255, 255, 255, 0.86);
+    line-height: 1.8;
+    font-size: 1.05rem;
+  }
+
+  .conteudo-blog-formatado p {
+    margin: 0 0 1.25rem 0;
+    color: rgba(255, 255, 255, 0.86);
+  }
+
+  .conteudo-blog-formatado h1,
+  .conteudo-blog-formatado h2,
+  .conteudo-blog-formatado h3,
+  .conteudo-blog-formatado h4 {
+    color: #fff;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    margin: 1.8rem 0 0.9rem 0;
+  }
+
+  .conteudo-blog-formatado h1 {
+    font-size: clamp(2rem, 4.3vw, 3rem);
+  }
+
+  .conteudo-blog-formatado h2 {
+    font-size: clamp(1.6rem, 3.2vw, 2.3rem);
+  }
+
+  .conteudo-blog-formatado h3 {
+    font-size: clamp(1.3rem, 2.5vw, 1.8rem);
+  }
+
+  .conteudo-blog-formatado h4 {
+    font-size: clamp(1.15rem, 2.1vw, 1.45rem);
+  }
+
+  .conteudo-blog-formatado ul,
+  .conteudo-blog-formatado ol {
+    margin: 0.8rem 0 1.25rem 0;
+    padding-left: 1.5rem;
+  }
+
+  .conteudo-blog-formatado li {
+    margin: 0.35rem 0;
+  }
+
+  .conteudo-blog-formatado ul li::marker,
+  .conteudo-blog-formatado ol li::marker {
+    color: rgb(34 211 238);
+    font-weight: 700;
+  }
+
+  .conteudo-blog-formatado blockquote {
+    margin: 1.2rem 0;
+    border-left: 4px solid rgb(6 182 212);
+    border-radius: 0.9rem;
+    background: rgba(255, 255, 255, 0.04);
+    padding: 0.9rem 1rem;
+    color: rgba(199, 244, 252, 0.96);
+  }
+
+  .conteudo-blog-formatado a {
+    color: rgb(34 211 238);
+    text-decoration: underline;
+  }
+
+  .conteudo-blog-formatado code {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgb(103 232 249);
+    border-radius: 0.4rem;
+    padding: 0.1rem 0.38rem;
+    font-size: 0.9em;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  }
+
+  .conteudo-blog-formatado pre {
+    background: rgba(5, 15, 28, 0.95);
+    border: 1px solid rgba(34, 211, 238, 0.2);
+    border-radius: 0.9rem;
+    padding: 1rem;
+    overflow: auto;
+  }
+
+  .conteudo-blog-formatado img {
+    border-radius: 1.15rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    margin: 1.2rem 0;
+  }
+
+  .conteudo-blog-formatado hr {
+    border: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.16);
+    margin: 1.4rem 0;
+  }
+}
+
 .text-glow {
   text-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
 }
