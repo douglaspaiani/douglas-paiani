@@ -27,6 +27,99 @@ import {
   Highlighter,
 } from 'lucide-react';
 import { Category, Post } from '@/src/types/admin';
+import CodeSnippet from '@/src/components/admin/CodeSnippet';
+
+function escaparHtml(texto: string) {
+  return texto
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function aplicarFormatacaoInlineMarkdown(texto: string) {
+  return texto
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`(.+?)`/g, '<code class="px-1.5 py-0.5 rounded bg-white/10 text-cyan-300">$1</code>')
+    .replace(
+      /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+      '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-cyan-400 underline">$1</a>',
+    );
+}
+
+function converterMarkdownParaHtml(conteudo: string) {
+  const linhas = conteudo.replace(/\r\n/g, '\n').split('\n');
+  const blocos: string[] = [];
+  let listaAberta = false;
+  let listaOrdenadaAberta = false;
+
+  const fecharListasSeNecessario = () => {
+    if (listaAberta) {
+      blocos.push('</ul>');
+      listaAberta = false;
+    }
+    if (listaOrdenadaAberta) {
+      blocos.push('</ol>');
+      listaOrdenadaAberta = false;
+    }
+  };
+
+  for (const linhaOriginal of linhas) {
+    const linha = linhaOriginal.trim();
+    if (!linha) {
+      fecharListasSeNecessario();
+      continue;
+    }
+
+    const linhaEscapada = aplicarFormatacaoInlineMarkdown(escaparHtml(linha));
+
+    if (linha.startsWith('## ')) {
+      fecharListasSeNecessario();
+      blocos.push(`<h2>${linhaEscapada.replace(/^##\s+/, '')}</h2>`);
+      continue;
+    }
+
+    if (linha.startsWith('# ')) {
+      fecharListasSeNecessario();
+      blocos.push(`<h1>${linhaEscapada.replace(/^#\s+/, '')}</h1>`);
+      continue;
+    }
+
+    if (linha.startsWith('> ')) {
+      fecharListasSeNecessario();
+      blocos.push(`<blockquote><p>${linhaEscapada.replace(/^>\s+/, '')}</p></blockquote>`);
+      continue;
+    }
+
+    if (linha.startsWith('- ')) {
+      if (!listaAberta) {
+        fecharListasSeNecessario();
+        blocos.push('<ul class="list-disc pl-6">');
+        listaAberta = true;
+      }
+      blocos.push(`<li>${linhaEscapada.replace(/^-\s+/, '')}</li>`);
+      continue;
+    }
+
+    if (/^\d+\.\s+/.test(linha)) {
+      if (!listaOrdenadaAberta) {
+        fecharListasSeNecessario();
+        blocos.push('<ol class="list-decimal pl-6">');
+        listaOrdenadaAberta = true;
+      }
+      blocos.push(`<li>${linhaEscapada.replace(/^\d+\.\s+/, '')}</li>`);
+      continue;
+    }
+
+    fecharListasSeNecessario();
+    blocos.push(`<p>${linhaEscapada}</p>`);
+  }
+
+  fecharListasSeNecessario();
+  return blocos.join('\n');
+}
 
 export default function PostEditor() {
   const { token } = useAuth();
@@ -57,6 +150,24 @@ export default function PostEditor() {
     [content],
   );
   const tempoLeitura = useMemo(() => Math.max(1, Math.ceil(quantidadePalavras / 200)), [quantidadePalavras]);
+  const partesPreview = useMemo(() => {
+    const partes = content.split(/(\[code language=".*?"\].*?\[\/code\])/gs);
+    return partes.map((parte, indice) => {
+      const trechoCodigo = parte.match(/\[code language="(.*?)"\](.*?)\[\/code\]/s);
+      if (trechoCodigo) {
+        const [, linguagem, codigo] = trechoCodigo;
+        return <CodeSnippet key={`codigo-${indice}`} language={linguagem} code={codigo.trim()} />;
+      }
+
+      if (!parte.trim()) return null;
+      return (
+        <div
+          key={`texto-${indice}`}
+          dangerouslySetInnerHTML={{ __html: converterMarkdownParaHtml(parte) }}
+        />
+      );
+    });
+  }, [content]);
 
   const sincronizarBotoesHistorico = () => {
     const indice = referenciaIndiceHistorico.current;
@@ -526,15 +637,37 @@ export default function PostEditor() {
                 {quantidadePalavras} palavras • {tempoLeitura} min leitura • Suporta Markdown e [code language=&quot;javascript&quot;]...[/code]
               </div>
 
-              <textarea
-                ref={referenciaTextareaConteudo}
-                value={content}
-                onChange={(e) => atualizarConteudo(e.target.value)}
-                className="w-full px-7 py-6 rounded-[28px] bg-[#1a2131] border border-white/10 text-white focus:border-cyan-500 focus:outline-none transition-all min-h-[520px] text-[34px] sm:text-[30px] leading-[1.85] tracking-[-0.01em] font-medium"
-                style={{ fontSize: 'clamp(22px, 2.2vw, 36px)' }}
-                placeholder="Escreva seu conteúdo..."
-                required
-              />
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                <textarea
+                  ref={referenciaTextareaConteudo}
+                  value={content}
+                  onChange={(e) => atualizarConteudo(e.target.value)}
+                  className="w-full px-7 py-6 rounded-[28px] bg-[#1a2131] border border-white/10 text-white focus:border-cyan-500 focus:outline-none transition-all min-h-[520px] text-base leading-8 tracking-[0] font-medium"
+                  placeholder="Escreva seu conteúdo..."
+                  required
+                />
+
+                <div className="min-h-[520px] px-7 py-6 rounded-[28px] bg-[#1a2131] border border-cyan-500/30 overflow-auto">
+                  {content.trim() ? (
+                    <div
+                      className="article-content prose prose-invert prose-cyan max-w-none
+                        prose-headings:font-bold prose-headings:text-white
+                        prose-p:text-white/90 prose-p:leading-relaxed prose-p:mb-6
+                        prose-h1:text-4xl prose-h1:mb-6 prose-h1:mt-8
+                        prose-h2:text-3xl prose-h2:mb-5 prose-h2:mt-7
+                        prose-strong:text-white prose-em:text-cyan-300
+                        prose-ul:space-y-2 prose-li:text-white/85
+                        prose-ol:space-y-2 prose-blockquote:border-cyan-500 prose-blockquote:text-cyan-200"
+                    >
+                      {partesPreview}
+                    </div>
+                  ) : (
+                    <div className="h-full min-h-[440px] flex items-center justify-center text-center text-white/35 text-sm">
+                      A prévia formatada aparece aqui em tempo real.
+                    </div>
+                  )}
+                </div>
+              </div>
               <p className="text-[11px] text-white/35 ml-2">
                 Dica: para código use o botão Código ou o formato [code language=&quot;js&quot;]...[/code].
               </p>
