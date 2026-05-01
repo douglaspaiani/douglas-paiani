@@ -13,8 +13,19 @@
   
   body {
     @apply bg-black text-white antialiased;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
     overflow-x: hidden;
     width: 100%;
+  }
+
+  input,
+  textarea,
+  [contenteditable="true"] {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    user-select: text;
   }
 
   a, button {

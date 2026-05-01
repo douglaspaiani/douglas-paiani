@@ -6,7 +6,7 @@ import barberonLogo from "@/src/images/barberon.png";
 import lojistaAppleLogo from "@/src/images/lojistaapple.png";
 import teuautoLogo from "@/src/images/teuauto.png";
 import proclubLogo from "@/src/images/proclub.png";
-import inferninhoLogo from "@/src/images/inferninho.png";
+import obsidianoLogo from "@/src/images/obsidiano.png";
 
 const saasCompanies = [
   {
@@ -46,13 +46,13 @@ const saasCompanies = [
     tag: "On-Demand"
   },
   {
-    name: "Inferninho",
-    desc: "Plataforma de monetização de conteúdo pessoal com uso de IA.",
-    logo: inferninhoLogo,
-    link: "https://inferninho.com.br",
+    name: "Obsidiano",
+    desc: "App de gestão pessoal e pessoal na mesma tela usando IA.",
+    logo: obsidianoLogo,
+    link: "https://obsidiano.com.br",
     color: "from-orange-500 to-red-500",
-    stats: "500k acessos/dia",
-    tag: "Big tech"
+    stats: "100k acessos/dia",
+    tag: "IA Pessoal"
   }
 ];
 

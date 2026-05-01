@@ -1,7 +1,6 @@
 import { motion, AnimatePresence } from "motion/react";
 import { Helmet } from "react-helmet-async";
 import Hero from "@/src/components/Hero";
-import CodeWindow from "@/src/components/CodeWindow";
 import AIServiceCard from "@/src/components/AIServiceCard";
 import ProcessCard from "@/src/components/ProcessCard";
 import MatrixRain from "@/src/components/MatrixRain";
@@ -31,7 +30,7 @@ const services = [
     features: ["Checkout Otimizado", "Gestão de Inventário", "Integração de Pagamentos"]
   },
   {
-    title: "Plataformas web e Saas",
+    title: "MVP e SaaS",
     desc: "Arquitetura de sistemas robustos e plataformas SaaS escaláveis, utilizando as tecnologias mais modernas do mercado.",
     icon: Layers,
     color: "text-purple-400",
@@ -48,20 +47,6 @@ const services = [
   }
 ];
 
-const aiCode = `async function initializeAIAgent(config: AgentConfig) {
-  const model = await genAI.getGenerativeModel({ 
-    model: "gemini-3-pro-preview" 
-  });
-
-  const agent = new AutonomousAgent({
-    identity: "Douglas Paiani Expert System",
-    capabilities: ["coding", "architecture", "scaling"],
-    memory: new VectorDatabase(config.vectorStore)
-  });
-
-  // Start neural processing loop
-  return await agent.startProcessing();
-}`;
 
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from "recharts";
 
@@ -373,6 +358,82 @@ export default function Inicio() {
           <p className="text-white/40 max-w-2xl mx-auto font-light text-lg">Arquiteturas inteligentes que transcendem o código tradicional. Do processamento neural à escala massiva.</p>
         </div>
 
+        <div className="mb-16 grid lg:grid-cols-[1fr_auto_1fr] gap-8 lg:gap-10 items-center">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.7 }}
+            className="p-7 md:p-8"
+          >
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-[11px] font-bold uppercase tracking-[0.2em] mb-5">
+              <Code2 size={14} />
+              Desenvolvimento Especializado
+            </div>
+            <h3 className="text-2xl md:text-3xl font-black text-white tracking-tight mb-4">
+              Crie seu projeto com base sólida de engenharia
+            </h3>
+            <p className="text-white/65 leading-relaxed">
+              Arquitetura bem definida, performance real e código escalável para transformar ideias em produtos digitais confiáveis.
+            </p>
+            <ul className="mt-6 space-y-3 text-white/80">
+              {[
+                "Planejamento técnico desde o início",
+                "Código limpo com foco em manutenção",
+                "Entrega com qualidade e visão de produto"
+              ].map((item, i) => (
+                <li key={i} className="flex items-center gap-3">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_14px_rgba(34,211,238,0.95)]" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8 }}
+            className="relative mx-auto"
+          >
+            <img
+              src="/douglas-ia.png"
+              alt="Especialista em desenvolvimento e inteligência artificial"
+              className="relative z-10 w-[300px] md:w-[360px] lg:w-[400px] object-cover [clip-path:inset(0_2px_0_0)]"
+              loading="lazy"
+            />
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.7 }}
+            className="p-7 md:p-8"
+          >
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300 text-[11px] font-bold uppercase tracking-[0.2em] mb-5">
+              <Brain size={14} />
+              TOP 50 programdor do Brasil
+            </div>
+            <h3 className="text-2xl md:text-3xl font-black text-white tracking-tight mb-4">
+              Seu projeto na mão certa
+            </h3>
+            <p className="text-white/65 leading-relaxed">
+              Sou um dos <b>Top 50</b> programadores do Brasil e <b>Top 10</b> do RS. Criador de diversas startups de alto níveis e projetos sociais incríveis.
+            </p>
+            <ul className="mt-6 space-y-3 text-white/80">
+              {[
+                "15 anos de experiência",
+                "+50 projetos internacionais",
+                "CEO da Ogiva Digital"
+              ].map((item, i) => (
+                <li key={i} className="flex items-center gap-3">
+                  <span className="w-2 h-2 rounded-full bg-blue-400 shadow-[0_0_14px_rgba(96,165,250,0.95)]" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+        </div>
+
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {services.map((service, i) => (
             <Link key={i} to={service.path} className="block h-full">
@@ -424,7 +485,6 @@ export default function Inicio() {
                 </li>
               ))}
             </ul>
-            <CodeWindow code={aiCode} />
           </motion.div>
           <div className="relative">
             <div className="aspect-square rounded-full bg-cyan-500/10 blur-[120px] absolute inset-0 animate-pulse" />
