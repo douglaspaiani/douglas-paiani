@@ -91,7 +91,7 @@ export default function Hero() {
             initial={{ opacity: 0, x: -20, scale: 0.95 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
             transition={{ duration: 1, delay: 0.2 }}
-            className="order-2 lg:order-1 relative"
+            className="order-1 lg:order-1 relative"
           >
             <motion.img
               src="/douglas-paiani01.png"
@@ -125,7 +125,7 @@ export default function Hero() {
             </motion.div>
           </motion.div>
 
-          <div className="order-1 lg:order-2">
+          <div className="order-2 lg:order-2">
             {/* AI Badge */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
