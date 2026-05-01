@@ -102,7 +102,7 @@ export default function Hero() {
             <motion.div
               animate={{ y: [0, -6, 0] }}
               transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
-              className="hidden lg:flex absolute top-10 -left-4 px-5 py-2.5 rounded-full border border-fuchsia-400/35 bg-fuchsia-500/15 backdrop-blur-md text-fuchsia-100 text-[11px] font-black uppercase tracking-wider items-center gap-3 shadow-[0_0_22px_rgba(217,70,239,0.22)]"
+              className="flex absolute top-2 left-2 lg:top-10 lg:-left-4 px-3 py-1.5 lg:px-5 lg:py-2.5 rounded-full border border-fuchsia-400/35 bg-fuchsia-500/15 backdrop-blur-md text-fuchsia-100 text-[9px] lg:text-[11px] font-black uppercase tracking-wider items-center gap-2 lg:gap-3 shadow-[0_0_22px_rgba(217,70,239,0.22)] z-20"
             >
               <img src={logoOgiva} alt="Logo Ogiva" className="w-5 h-5 object-contain" />
               <span>CEO da Ogiva Digital</span>
@@ -110,7 +110,7 @@ export default function Hero() {
             <motion.div
               animate={{ y: [0, 6, 0] }}
               transition={{ duration: 3.6, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
-              className="hidden lg:flex absolute top-[56%] left-[62%] -translate-x-1/2 -translate-y-1/2 px-5 py-2.5 rounded-full border border-emerald-400/35 bg-emerald-500/15 backdrop-blur-md text-emerald-100 text-[11px] font-black uppercase tracking-wider items-center gap-3 shadow-[0_0_22px_rgba(16,185,129,0.2)]"
+              className="flex absolute top-[56%] left-[58%] -translate-x-1/2 -translate-y-1/2 lg:left-[62%] px-3 py-1.5 lg:px-5 lg:py-2.5 rounded-full border border-emerald-400/35 bg-emerald-500/15 backdrop-blur-md text-emerald-100 text-[9px] lg:text-[11px] font-black uppercase tracking-wider items-center gap-2 lg:gap-3 shadow-[0_0_22px_rgba(16,185,129,0.2)] z-20"
             >
               <img src={logoObsidiano} alt="Logo Obsidiano" className="w-5 h-5 object-contain" />
               <span>Criador do Obsidiano</span>
@@ -118,7 +118,7 @@ export default function Hero() {
             <motion.div
               animate={{ y: [0, -5, 0] }}
               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
-              className="hidden lg:flex absolute bottom-12 -left-6 px-5 py-2.5 rounded-full border border-cyan-300/30 bg-cyan-500/12 backdrop-blur-md text-cyan-100 text-[11px] font-black uppercase tracking-wider items-center gap-3 shadow-[0_0_22px_rgba(34,211,238,0.18)]"
+              className="flex absolute bottom-2 left-1 lg:bottom-12 lg:-left-6 px-3 py-1.5 lg:px-5 lg:py-2.5 rounded-full border border-cyan-300/30 bg-cyan-500/12 backdrop-blur-md text-cyan-100 text-[9px] lg:text-[11px] font-black uppercase tracking-wider items-center gap-2 lg:gap-3 shadow-[0_0_22px_rgba(34,211,238,0.18)] z-20"
             >
               <img src={logoBarberon} alt="Logo Barberon" className="w-5 h-5 object-contain" />
               <span>Criador do Barberon</span>
