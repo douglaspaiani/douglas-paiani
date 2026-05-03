@@ -6,6 +6,7 @@ import ProcessCard from "@/src/components/ProcessCard";
 import MatrixRain from "@/src/components/MatrixRain";
 import QuoteForm from "@/src/components/QuoteForm";
 import SaaSPortfolio from "@/src/components/SaaSPortfolio";
+import imagemDouglasInteligenciaArtificial from "@/src/images/douglas-inteligencia-artificial.jpg";
 import { Brain, Cpu, Globe, Smartphone, ShieldCheck, Zap, ArrowRight, ArrowLeft, ShoppingCart, Layers, Terminal, Database, Cloud, Code2, Search, MessageSquare, Star, Server, Rocket, Bot, Eye, Network, Activity, Calendar, Clock, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import React, { useEffect, useMemo, useState } from "react";
@@ -486,34 +487,13 @@ export default function Inicio() {
               ))}
             </ul>
           </motion.div>
-          <div className="relative">
-            <div className="aspect-square rounded-full bg-cyan-500/10 blur-[120px] absolute inset-0 animate-pulse" />
-            <motion.div 
-              animate={{ y: [0, -20, 0] }}
-              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-              className="relative p-8 rounded-[40px] bg-white/5 border border-white/10 backdrop-blur-xl"
-            >
-              <div className="grid grid-cols-2 gap-4">
-                {[1, 2, 3, 4].map(i => (
-                  <div key={i} className="h-32 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center">
-                    <Cpu className="text-cyan-500/20" size={40} />
-                  </div>
-                ))}
-              </div>
-              <div className="mt-8 p-6 rounded-2xl bg-cyan-500/10 border border-cyan-500/20">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-3 h-3 rounded-full bg-cyan-500 animate-ping" />
-                  <span className="text-cyan-400 text-xs font-bold uppercase">Neural Engine Active</span>
-                </div>
-                <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
-                  <motion.div 
-                    animate={{ x: ["-100%", "100%"] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                    className="h-full w-1/3 bg-cyan-500"
-                  />
-                </div>
-              </div>
-            </motion.div>
+          <div className="relative overflow-hidden rounded-[40px]">
+            <img
+              src={imagemDouglasInteligenciaArtificial}
+              alt="Douglas Paiani aplicando inteligência artificial em soluções de software"
+              className="h-full w-full object-cover [clip-path:inset(0_2px_0_0)]"
+              loading="lazy"
+            />
           </div>
         </div>
       </section>

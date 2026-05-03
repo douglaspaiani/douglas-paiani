@@ -32,6 +32,15 @@
     @apply cursor-pointer;
   }
 
+  img {
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
   ::-webkit-scrollbar {
     width: 8px;
   }
