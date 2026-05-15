@@ -59,7 +59,7 @@ function obterFocoCurso(tituloCurso: string) {
 
 export default function Cursos() {
   return (
-    <main className="bg-black min-h-screen pt-32 pb-24 px-6 overflow-x-hidden">
+    <main className="bg-black min-h-screen pt-32 pb-24 px-4 sm:px-6 overflow-x-hidden">
       <Helmet>
         <title>Cursos | Douglas Paiani</title>
         <meta
@@ -116,7 +116,7 @@ export default function Cursos() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="mt-6 text-5xl md:text-7xl font-black tracking-tighter text-white"
+            className="mt-6 text-4xl sm:text-5xl md:text-7xl font-black tracking-tighter text-white"
           >
             CURSOS PARA
             <span className="text-cyan-400"> CRIAR RÁPIDO.</span>
@@ -126,7 +126,7 @@ export default function Cursos() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="mt-6 text-white/55 max-w-3xl mx-auto text-lg leading-relaxed"
+            className="mt-6 text-white/55 max-w-3xl mx-auto text-base sm:text-lg leading-relaxed"
           >
             Formação prática para tirar ideias do papel com velocidade, clareza e execução real usando Inteligência Artificial.
           </motion.p>
@@ -140,23 +140,23 @@ export default function Cursos() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.25 }}
               transition={{ duration: 0.6, delay: indiceCurso * 0.08 }}
-              className="relative overflow-hidden rounded-[34px] border border-white/18 bg-white/[0.04] backdrop-blur-2xl shadow-[0_22px_70px_rgba(0,0,0,0.4)]"
+              className="relative overflow-hidden rounded-[26px] sm:rounded-[34px] border border-white/18 bg-white/[0.04] backdrop-blur-2xl shadow-[0_22px_70px_rgba(0,0,0,0.4)]"
             >
               <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(120deg,rgba(255,255,255,0.08),transparent_30%,transparent_70%,rgba(34,211,238,0.12))]" />
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_85%_20%,rgba(34,211,238,0.22),transparent_45%)]" />
 
-              <div className="relative p-6 md:p-10 lg:p-12 grid lg:grid-cols-12 gap-8 lg:gap-12">
+              <div className="relative p-5 sm:p-6 md:p-10 lg:p-12 grid lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-12">
                 <div className="lg:col-span-8">
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[10px] uppercase tracking-[0.2em] font-black mb-5">
                     <GraduationCap size={12} />
                     {indiceCurso === 0 ? "Metodologia única" : "Desenvolva a custo zero"}
                   </div>
 
-                  <h2 className="text-3xl md:text-5xl font-black tracking-tight leading-tight text-white">
+                  <h2 className="text-2xl sm:text-3xl md:text-5xl font-black tracking-tight leading-tight text-white">
                     {curso.titulo}
                   </h2>
 
-                  <p className="mt-5 text-white/55 text-lg leading-relaxed max-w-3xl">
+                  <p className="mt-4 sm:mt-5 text-white/55 text-base sm:text-lg leading-relaxed max-w-3xl">
                     {curso.descricaoCurta}
                   </p>
 
@@ -175,16 +175,16 @@ export default function Cursos() {
                     </div>
                   </div>
 
-                  <div className="mt-8 flex flex-col items-start gap-3">
+                  <div className="mt-8 flex flex-col items-start gap-3 w-full pr-14 sm:pr-0">
                     <Link
                       to={`/cursos/${curso.slug}`}
-                      className="group inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-cyan-500 text-black text-xs font-black uppercase tracking-[0.18em] whitespace-nowrap"
+                      className="group inline-flex w-full sm:w-auto justify-center items-center gap-2 px-6 py-3 rounded-2xl bg-cyan-500 text-black text-xs font-black uppercase tracking-[0.18em] whitespace-nowrap"
                     >
                       Conhecer o curso
                       <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                     </Link>
 
-                    <span className="inline-flex items-center gap-2 text-white/55 text-sm whitespace-nowrap">
+                    <span className="inline-flex items-center gap-2 text-white/55 text-sm leading-relaxed">
                       <Clock3 size={15} className="text-cyan-400" />
                       {curso.tempoAprendizado}
                     </span>
