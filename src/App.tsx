@@ -18,6 +18,8 @@ import Aplicativos from "@/src/pages/servicos/Aplicativos";
 import Plataformas from "@/src/pages/servicos/Plataformas";
 import Blog from "@/src/pages/Blog";
 import BlogPost from "@/src/pages/BlogPost";
+import Cursos from "@/src/pages/Cursos";
+import CursoDetalhe from "@/src/pages/CursoDetalhe";
 import Privacidade from "@/src/pages/Privacidade";
 import Termos from "@/src/pages/Termos";
 
@@ -46,6 +48,8 @@ export default function App() {
             <Route path="/servicos/lojas-virtuais" element={<><Navbar /><LojasVirtuais /><Footer /></>} />
             <Route path="/servicos/aplicativos" element={<><Navbar /><Aplicativos /><Footer /></>} />
             <Route path="/servicos/plataformas" element={<><Navbar /><Plataformas /><Footer /></>} />
+            <Route path="/cursos" element={<><Navbar /><Cursos /><Footer /></>} />
+            <Route path="/cursos/:slug" element={<><Navbar /><CursoDetalhe /><Footer /></>} />
             <Route path="/blog" element={<><Navbar /><Blog /><Footer /></>} />
             <Route path="/blog/:slug" element={<><Navbar /><BlogPost /><Footer /></>} />
             <Route path="/privacidade" element={<><Navbar /><Privacidade /><Footer /></>} />

@@ -35,10 +35,30 @@ export default function Hero() {
       {/* AI Background Layers */}
       <div className="absolute inset-0 z-0">
         <div className="absolute inset-0 bg-black" />
-        <MatrixRain colorClass="text-cyan-500" opacity="opacity-[0.12]" columns={34} />
-        <div className="absolute inset-0 opacity-[0.22]">
-          <MatrixRain colorClass="text-slate-400" opacity="opacity-[0.12]" columns={28} />
+        <div className="absolute inset-0 mix-blend-screen">
+          <MatrixRain colorClass="text-blue-400" opacity="opacity-[0.18]" columns={34} />
         </div>
+        <div className="absolute inset-0 mix-blend-screen blur-[0.4px]">
+          <MatrixRain colorClass="text-cyan-300" opacity="opacity-[0.12]" columns={22} />
+        </div>
+        <div className="absolute inset-0 mix-blend-screen">
+          <MatrixRain colorClass="text-sky-300" opacity="opacity-[0.07]" columns={12} />
+        </div>
+
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_12%,rgba(59,130,246,0.24),transparent_52%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_82%_24%,rgba(6,182,212,0.18),transparent_48%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,8,20,0.12),rgba(0,0,0,0.42))]" />
+
+        <motion.div
+          animate={{ opacity: [0.28, 0.6, 0.28], scale: [1, 1.05, 1] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute -top-24 left-1/2 -translate-x-1/2 w-[60rem] h-[60rem] rounded-full bg-[radial-gradient(circle,rgba(6,182,212,0.22),transparent_60%)]"
+        />
+        <motion.div
+          animate={{ x: ["-15%", "15%", "-15%"], opacity: [0.08, 0.18, 0.08] }}
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute -bottom-12 left-0 w-[56rem] h-[24rem] rounded-full bg-[radial-gradient(circle,rgba(59,130,246,0.2),transparent_65%)]"
+        />
         <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/55" />
         
         {/* SVG Neural Network Background */}

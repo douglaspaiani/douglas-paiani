@@ -14,6 +14,7 @@ import {
   Sparkles,
   Menu,
   X,
+  GraduationCap,
 } from "lucide-react";
 import { useState, useEffect, MouseEvent } from "react";
 import logoPrincipal from "@/src/images/logo.png";
@@ -32,6 +33,7 @@ const itensNavegacao = [
       { name: "Plataformas Web", path: "/servicos/plataformas", icon: Layers, desc: "Sistemas complexos e escaláveis" },
     ],
   },
+  { name: "Cursos", path: "/cursos", icon: GraduationCap },
   { name: "Projetos", path: "/projetos", icon: Briefcase },
   { name: "Blog", path: "/blog", icon: Sparkles },
 ];
@@ -235,6 +237,18 @@ export default function Navbar() {
     }
   };
 
+  const verificarItemAtivo = (item: typeof itensNavegacao[number], caminhoAtual: string) => {
+    if (item.dropdown) {
+      return item.dropdown.some(
+        (subItem) =>
+          caminhoAtual === subItem.path || caminhoAtual.startsWith(`${subItem.path}/`),
+      );
+    }
+
+    if (item.path === "/") return caminhoAtual === "/";
+    return caminhoAtual === item.path || caminhoAtual.startsWith(`${item.path}/`);
+  };
+
   return (
     <>
       <nav
@@ -247,8 +261,7 @@ export default function Navbar() {
       >
         <ul className="flex items-center gap-2">
           {itensNavegacao.map((item) => {
-            const ativo =
-              location.pathname === item.path || item.dropdown?.some((d) => location.pathname === d.path);
+            const ativo = verificarItemAtivo(item, location.pathname);
             return (
               <ItemNavegacaoDesktop
                 key={item.name}
@@ -362,8 +375,7 @@ export default function Navbar() {
 
               <div className="space-y-2">
                 {itensNavegacao.map((item) => {
-                  const ativo =
-                    location.pathname === item.path || item.dropdown?.some((d) => location.pathname === d.path);
+                  const ativo = verificarItemAtivo(item, location.pathname);
 
                   if (item.dropdown) {
                     return (
